@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="背景项目有一些非常重要的后台应用是跑在 AWS 的 lambda 上的，老板和产品非常关注这些应用的执行情况，一旦出错，都会是很严重的故障。 方案变迁前面做过一些基础设施级别的监控报警，如：监控 AWS 的 RDS 并通过企业微信来报警，那个完全是利用基础设施自动打到 CloudWatch 的基础的 metrics 来做的。 于是，我这里下意识的就想利用现有的 CloudWatch 里现成的 Me">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通过实时监控日志里的敏感信息来实现对应用的监控报警">
+<meta property="og:url" content="https://ming.theyan.gs/2023/11/%E9%80%9A%E8%BF%87%E5%AE%9E%E6%97%B6%E7%9B%91%E6%8E%A7%E6%97%A5%E5%BF%97%E9%87%8C%E7%9A%84%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%E6%9D%A5%E5%AE%9E%E7%8E%B0%E5%AF%B9%E5%BA%94%E7%94%A8%E7%9A%84%E7%9B%91%E6%8E%A7%E6%8A%A5%E8%AD%A6/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="背景项目有一些非常重要的后台应用是跑在 AWS 的 lambda 上的，老板和产品非常关注这些应用的执行情况，一旦出错，都会是很严重的故障。 方案变迁前面做过一些基础设施级别的监控报警，如：监控 AWS 的 RDS 并通过企业微信来报警，那个完全是利用基础设施自动打到 CloudWatch 的基础的 metrics 来做的。 于是，我这里下意识的就想利用现有的 CloudWatch 里现成的 Me">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2023-11-25T11:37:31.000Z">
+<meta property="article:modified_time" content="2023-11-27T13:18:25.000Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="AWS">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="企业微信">
+<meta property="article:tag" content="lambda">
+<meta property="article:tag" content="cloudwatch">
+<meta property="article:tag" content="log group">
+<meta property="article:tag" content="log stream">
+<meta property="article:tag" content="WeChat-Notifier">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2023/11/%E9%80%9A%E8%BF%87%E5%AE%9E%E6%97%B6%E7%9B%91%E6%8E%A7%E6%97%A5%E5%BF%97%E9%87%8C%E7%9A%84%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%E6%9D%A5%E5%AE%9E%E7%8E%B0%E5%AF%B9%E5%BA%94%E7%94%A8%E7%9A%84%E7%9B%91%E6%8E%A7%E6%8A%A5%E8%AD%A6/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2023/11/%E9%80%9A%E8%BF%87%E5%AE%9E%E6%97%B6%E7%9B%91%E6%8E%A7%E6%97%A5%E5%BF%97%E9%87%8C%E7%9A%84%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%E6%9D%A5%E5%AE%9E%E7%8E%B0%E5%AF%B9%E5%BA%94%E7%94%A8%E7%9A%84%E7%9B%91%E6%8E%A7%E6%8A%A5%E8%AD%A6/index.html","path":"2023/11/通过实时监控日志里的敏感信息来实现对应用的监控报警/index.html","title":"通过实时监控日志里的敏感信息来实现对应用的监控报警"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>通过实时监控日志里的敏感信息来实现对应用的监控报警 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%B9%E6%A1%88%E5%8F%98%E8%BF%81"><span class="nav-number">2.</span> <span class="nav-text">方案变迁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B7%E4%BD%93%E6%AD%A5%E9%AA%A4"><span class="nav-number">3.</span> <span class="nav-text">具体步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E5%86%99-Lambda-function"><span class="nav-number">3.1.</span> <span class="nav-text">编写 Lambda function</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%BA%E7%AB%8B-Lambda-subscribtion-filter-%E5%B9%B6%E6%8C%87%E5%90%91%E4%B8%8A%E4%B8%80%E6%AD%A5%E5%88%9B%E5%BB%BA%E7%9A%84-Lambda-function"><span class="nav-number">3.2.</span> <span class="nav-text">建立 Lambda subscribtion filter 并指向上一步创建的 Lambda function</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2023/11/%E9%80%9A%E8%BF%87%E5%AE%9E%E6%97%B6%E7%9B%91%E6%8E%A7%E6%97%A5%E5%BF%97%E9%87%8C%E7%9A%84%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF%E6%9D%A5%E5%AE%9E%E7%8E%B0%E5%AF%B9%E5%BA%94%E7%94%A8%E7%9A%84%E7%9B%91%E6%8E%A7%E6%8A%A5%E8%AD%A6/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="通过实时监控日志里的敏感信息来实现对应用的监控报警 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          通过实时监控日志里的敏感信息来实现对应用的监控报警
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-11-25 19:37:31" itemprop="dateCreated datePublished" datetime="2023-11-25T19:37:31+08:00">2023-11-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2023-11-27 21:18:25" itemprop="dateModified" datetime="2023-11-27T21:18:25+08:00">2023-11-27</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>项目有一些非常重要的后台应用是跑在 AWS 的 lambda 上的，老板和产品非常关注这些应用的执行情况，一旦出错，都会是很严重的故障。</p>
+<h2 id="方案变迁"><a href="#方案变迁" class="headerlink" title="方案变迁"></a>方案变迁</h2><p>前面做过一些基础设施级别的监控报警，如：<a href="/2023/09/%E7%9B%91%E6%8E%A7%20AWS%20%E7%9A%84%20RDS%20%E5%B9%B6%E9%80%9A%E8%BF%87%E4%BC%81%E4%B8%9A%E5%BE%AE%E4%BF%A1%E6%8A%A5%E8%AD%A6/index.html">监控 AWS 的 RDS 并通过企业微信来报警</a>，那个完全是利用基础设施自动打到 CloudWatch 的基础的 metrics 来做的。</p>
+<p>于是，我这里下意识的就想利用现有的 CloudWatch 里现成的 Metrics 来做这个事情，于是我就弄了三个（种）监控：</p>
+<span id="more"></span>
+
+<ul>
+<li>利用<a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Best_Practice_Recommended_Alarms_AWS_Services.html#Lambda">官方文档</a> 里提到的 lambda 的 Errors 这个基础 Metric 做了一个</li>
+<li>利用<a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Best_Practice_Recommended_Alarms_AWS_Services.html#ApiGateway">官方文档</a> 里提到的 API Gateway 的基础 Metrics: 4XXError 和 5XXError 做了一个（其实是两个，4XX、5XX 各一个）</li>
+<li>然后又用给 lambda function 的日志新建 metric filter 的方法，新建了一个 metric，用来统计日志里敏感信息信息的次数，最后在 CloudWatch 里用这个新建的 metric 来做的报警</li>
+</ul>
+<p>用这三种方案有一个好处，就是可以沿用之前已有的<a href="/2023/09/%E7%9B%91%E6%8E%A7%20AWS%20%E7%9A%84%20RDS%20%E5%B9%B6%E9%80%9A%E8%BF%87%E4%BC%81%E4%B8%9A%E5%BE%AE%E4%BF%A1%E6%8A%A5%E8%AD%A6/index.html">监控 AWS 的 RDS 并通过企业微信来报警</a>里的 <code>CloudWatch</code>-&gt;<code>SNS</code>-&gt;<code>Lambda function</code> 这种现成的框架。</p>
+<p>但等做完了，测试过报警信息了，才发现这三种方案都有一个共同的缺点：这三种都是基于 metrics 来做的报警，但是 metrics 其实只关注 metrics 的数量，报警依赖的是数量跟阈值的比较，报出来的上下文信息也只能是老状态是啥、新状态是啥；为什么触发报警（metric 次数超过阈值什么的），完完全全不能带出原始日志里的信息。所以，往往关心出错具体信息的技术收到报警以后也会一头雾水，完全不知道哪里出错。</p>
+<p>所以，改方案了，在重要的 lambda function 的日志里，新建一个 Lambda subscribtion filter，设置当在日志里发现敏感信息后，触发一个 Lambda function: A。在这个名叫 A 的 Lambda function 里，实现报警的功能。这个方案神似当年我们在实体机时代通过 <code>tail -f xxxx.log | grep &quot;xxxx&quot; | /path/to/a.py</code> 来检测重要程序的日志里的关键词“xxxx”来报警的套路。</p>
+<h2 id="具体步骤"><a href="#具体步骤" class="headerlink" title="具体步骤"></a>具体步骤</h2><h3 id="编写-Lambda-function"><a href="#编写-Lambda-function" class="headerlink" title="编写 Lambda function"></a>编写 Lambda function</h3><p>名叫 “A” 的报警 Lambda function 的代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> gzip</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"><span class="keyword">import</span> http.client</span><br><span class="line"><span class="keyword">import</span> urllib.parse</span><br><span class="line"></span><br><span class="line">WEBHOOK_TOKEN = os.environ[<span class="string">&#x27;WX_TOKEN&#x27;</span>]  <span class="comment"># 你的企业微信 Webhook Token</span></span><br><span class="line">WEBHOOK_URL = <span class="string">&quot;qyapi.weixin.qq.com&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">send_to_wechat_work</span>(<span class="params">account_id, region_name, log_group_name, log_stream_name, message</span>):</span><br><span class="line">    <span class="comment"># URL编码日志组和日志流名称</span></span><br><span class="line">    log_group_encoded = urllib.parse.quote(log_group_name, safe=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">    log_stream_encoded = urllib.parse.quote(log_stream_name, safe=<span class="string">&#x27;&#x27;</span>)</span><br><span class="line">    <span class="comment"># 构造CloudWatch日志链接</span></span><br><span class="line">    log_url = <span class="string">f&quot;https://console.aws.amazon.com/cloudwatch/home?region=<span class="subst">&#123;region_name&#125;</span>#logsV2:log-groups/log-group/<span class="subst">&#123;log_group_encoded&#125;</span>/log-events/<span class="subst">&#123;log_stream_encoded&#125;</span>&quot;</span></span><br><span class="line">    <span class="comment"># 创建企业微信消息格式</span></span><br><span class="line">    wechat_msg = &#123;</span><br><span class="line">        <span class="string">&quot;msgtype&quot;</span>: <span class="string">&quot;markdown&quot;</span>,</span><br><span class="line">        <span class="string">&quot;markdown&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;content&quot;</span>: <span class="string">f&quot;#### :rotating_light: Lambda Error Alert :rotating_light:\n&quot;</span></span><br><span class="line">                       <span class="string">f&quot;**Account ID:**<span class="subst">&#123;account_id&#125;</span>\n\n&quot;</span></span><br><span class="line">                       <span class="string">f&quot;**Log Group:**<span class="subst">&#123;log_group_name&#125;</span>\n\n&quot;</span></span><br><span class="line">                       <span class="string">f&quot;**Log Stream:**<span class="subst">&#123;log_stream_name&#125;</span>\n\n&quot;</span></span><br><span class="line">                       <span class="string">f&quot;**Message:**\n\n&quot;</span></span><br><span class="line">                       <span class="string">f&quot;```\n<span class="subst">&#123;message&#125;</span>\n```\n\n&quot;</span>  <span class="comment"># Markdown code block</span></span><br><span class="line">                       <span class="string">f&quot;[Click here to view the log](<span class="subst">&#123;log_url&#125;</span>)&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment"># 发送POST请求至企业微信</span></span><br><span class="line">    conn = http.client.HTTPSConnection(WEBHOOK_URL)</span><br><span class="line">    headers = &#123;<span class="string">&#x27;Content-Type&#x27;</span>: <span class="string">&#x27;application/json&#x27;</span>&#125;</span><br><span class="line">    body = json.dumps(wechat_msg)</span><br><span class="line">    conn.request(<span class="string">&quot;POST&quot;</span>, <span class="string">f&quot;/cgi-bin/webhook/send?key=<span class="subst">&#123;WEBHOOK_TOKEN&#125;</span>&quot;</span>, body, headers)</span><br><span class="line">    response = conn.getresponse()</span><br><span class="line">    data = response.read()</span><br><span class="line">    conn.close()</span><br><span class="line">    <span class="keyword">return</span> data</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">lambda_handler</span>(<span class="params">event, context</span>):</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># 解压缩日志数据</span></span><br><span class="line">        log_data = base64.b64decode(event[<span class="string">&#x27;awslogs&#x27;</span>][<span class="string">&#x27;data&#x27;</span>])</span><br><span class="line">        uncompressed_data = gzip.decompress(log_data)</span><br><span class="line">        log_events_data = json.loads(uncompressed_data)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Error processing log data: <span class="subst">&#123;<span class="built_in">str</span>(e)&#125;</span>&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> &#123;<span class="string">&#x27;statusCode&#x27;</span>: <span class="number">500</span>, <span class="string">&#x27;body&#x27;</span>: json.dumps(<span class="string">&#x27;Error processing log data&#x27;</span>)&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 获取日志组和流信息，并提取账户 ID 和区域(region)名</span></span><br><span class="line">    log_group_name = log_events_data.get(<span class="string">&#x27;logGroup&#x27;</span>, <span class="string">&#x27;Unknown log group&#x27;</span>)</span><br><span class="line">    log_stream_name = log_events_data.get(<span class="string">&#x27;logStream&#x27;</span>, <span class="string">&#x27;Unknown log stream&#x27;</span>)</span><br><span class="line">    account_id = context.invoked_function_arn.split(<span class="string">&quot;:&quot;</span>)[<span class="number">4</span>]</span><br><span class="line">    region_name = context.invoked_function_arn.split(<span class="string">&quot;:&quot;</span>)[<span class="number">3</span>]</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 过滤并发送每个有效的日志消息</span></span><br><span class="line">    messages_sent = <span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> log_event <span class="keyword">in</span> log_events_data.get(<span class="string">&#x27;logEvents&#x27;</span>, []):</span><br><span class="line">        message = log_event.get(<span class="string">&#x27;message&#x27;</span>).strip()</span><br><span class="line">        <span class="keyword">if</span> message:  <span class="comment"># 检查消息不是空的或者只包含空白字符</span></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;message:&quot;</span>, message)</span><br><span class="line">            send_to_wechat_work(account_id, region_name, log_group_name, log_stream_name, message)</span><br><span class="line">            messages_sent += <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> messages_sent == <span class="number">0</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;No valid log events to send.&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &#123;<span class="string">&#x27;statusCode&#x27;</span>: <span class="number">200</span>, <span class="string">&#x27;body&#x27;</span>: json.dumps(<span class="string">&#x27;Messages sent to WeChat Work&#x27;</span>)&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="建立-Lambda-subscribtion-filter-并指向上一步创建的-Lambda-function"><a href="#建立-Lambda-subscribtion-filter-并指向上一步创建的-Lambda-function" class="headerlink" title="建立 Lambda subscribtion filter 并指向上一步创建的 Lambda function"></a>建立 Lambda subscribtion filter 并指向上一步创建的 Lambda function</h3><p>在 Lambda 的页面里，找到需要监控报警的那个“重要”的后台应用：”B”，点击进入 “B” 的页面，点击 “Configration” 这个 tab，然后在左侧栏里点击 “Monitoring and operations tools”，这时，在中间栏的 “Logging configuration” 部分就能看到 “CloudWatch log group” 了，大概是像这样：“&#x2F;aws&#x2F;lambda&#x2F;B”，同时这也还是一个链接，直接点击就会到 B 在 CloudWatch 里的 Log group 了。</p>
+<p>在这个具体的 Log group 的页面里，点击 “Subscription filters” 这个 tab，点击右侧叫 “Create” 的下拉按钮，在弹出来的菜单里点击 “Create Lambda subscription filter”，然后</p>
+<ul>
+<li>在 “Lambda function” 里选择之前的那个叫 “A” 的 Lambda function</li>
+<li>“Subscription filter pattern” 里填上匹配日志的信息，比如我用的是“%xxxx%”</li>
+<li>“Subscription filter name” 随便写</li>
+</ul>
+<p>然后，点击右下按钮 “Start streaming” 就可以了。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>都很简单是吧，的确很简单。但是没用过 AWS 或对 AWS 不熟悉的人来说，估计是想不到 AWS 还有这些“奇奇怪怪”的功能的。顺便说一个冷知识，在 AWS 的 Serverless Application Repository 这个服务下的 Available applications 里，有个叫 <a target="_blank" rel="noopener" href="https://ap-southeast-1.console.aws.amazon.com/lambda/home?region=ap-southeast-1#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:108326622621:applications/WeChat-Notifier">“WeChat-Notifier” 的应用</a>，直接可以用来做报警！直接支持微信和企业微信。所以呀，其实就报警到（企业）微信这事儿，原本都不用写代码的，直接调用这个就好了！下次有时间再写写关于 “WeChat-Notifier” 的内容。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AWS/" rel="tag"># AWS</a>
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/%E4%BC%81%E4%B8%9A%E5%BE%AE%E4%BF%A1/" rel="tag"># 企业微信</a>
+              <a href="/tags/lambda/" rel="tag"># lambda</a>
+              <a href="/tags/cloudwatch/" rel="tag"># cloudwatch</a>
+              <a href="/tags/log-group/" rel="tag"># log group</a>
+              <a href="/tags/log-stream/" rel="tag"># log stream</a>
+              <a href="/tags/WeChat-Notifier/" rel="tag"># WeChat-Notifier</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/10/Chromebook%20%E5%AE%89%E8%A3%85%20Debian%2012%20testing/index.html" rel="prev" title="Chromebook 安装 Debian 12 testing">
+                  <i class="fa fa-angle-left"></i> Chromebook 安装 Debian 12 testing
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2023/12/Terraform%20%E5%AE%98%E6%96%B9%E6%96%87%E6%A1%A3%E9%85%8D%E7%BD%AE%E5%AF%BC%E8%87%B4%E7%9A%84%20DB%20Proxy%20%E6%95%85%E9%9A%9C%E6%A1%88%E4%BE%8B/index.html" rel="next" title="Terraform 官方文档配置导致的 DB Proxy 故障案例">
+                  Terraform 官方文档配置导致的 DB Proxy 故障案例 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

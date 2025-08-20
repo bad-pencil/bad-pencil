@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="简介这是之前有一家公司招 SRE，我投了简历，然后被给了份题让先做一下，于是便有了这篇“水”文。 当然，最终我并没有拿到这个 offer，最早是说一周内安排面试的，后来又说是这个岗位暂停了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="我做的某公司 SRE 职位的面试题">
+<meta property="og:url" content="https://ming.theyan.gs/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="简介这是之前有一家公司招 SRE，我投了简历，然后被给了份题让先做一下，于是便有了这篇“水”文。 当然，最终我并没有拿到这个 offer，最早是说一周内安排面试的，后来又说是这个岗位暂停了。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-02-13T15:24:31.000Z">
+<meta property="article:modified_time" content="2024-02-15T12:33:47.000Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="bash">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="SRE">
+<meta property="article:tag" content="interview">
+<meta property="article:tag" content="lsof">
+<meta property="article:tag" content="readlink">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html","path":"2024/02/我做的某公司 SRE 职位的面试题/index.html","title":"我做的某公司 SRE 职位的面试题"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>我做的某公司 SRE 职位的面试题 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%A6%E6%83%85"><span class="nav-number">2.</span> <span class="nav-text">详情</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%A2%98"><span class="nav-number">2.1.</span> <span class="nav-text">第一题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%A2%98%E7%AC%AC%E4%B8%80%E9%97%AE"><span class="nav-number">2.1.1.</span> <span class="nav-text">第一题第一问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%A2%98%E7%AC%AC%E4%BA%8C%E9%97%AE"><span class="nav-number">2.1.2.</span> <span class="nav-text">第一题第二问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%A2%98%E7%AC%AC%E4%B8%89%E9%97%AE"><span class="nav-number">2.1.3.</span> <span class="nav-text">第一题第三问</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E9%A2%98"><span class="nav-number">2.2.</span> <span class="nav-text">第二题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E9%A2%98%E7%AC%AC%E4%B8%80%E9%97%AE"><span class="nav-number">2.2.1.</span> <span class="nav-text">第二题第一问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E9%A2%98%E7%AC%AC%E4%BA%8C%E9%97%AE"><span class="nav-number">2.2.2.</span> <span class="nav-text">第二题第二问</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E9%A2%98"><span class="nav-number">2.3.</span> <span class="nav-text">第三题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E9%A2%98"><span class="nav-number">2.4.</span> <span class="nav-text">第四题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E9%A2%98%E7%AC%AC%E4%B8%80%E9%97%AE"><span class="nav-number">2.4.1.</span> <span class="nav-text">第四题第一问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E9%A2%98%E7%AC%AC%E4%BA%8C%E9%97%AE"><span class="nav-number">2.4.2.</span> <span class="nav-text">第四题第二问</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E9%A2%98%E7%AC%AC%E4%B8%89%E9%97%AE"><span class="nav-number">2.4.3.</span> <span class="nav-text">第四题第三问</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="我做的某公司 SRE 职位的面试题 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          我做的某公司 SRE 职位的面试题
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-02-13 23:24:31" itemprop="dateCreated datePublished" datetime="2024-02-13T23:24:31+08:00">2024-02-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-02-15 20:33:47" itemprop="dateModified" datetime="2024-02-15T20:33:47+08:00">2024-02-15</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>这是之前有一家公司招 SRE，我投了简历，然后被给了份题让先做一下，于是便有了这篇“水”文。</p>
+<p>当然，最终我并没有拿到这个 offer，最早是说一周内安排面试的，后来又说是这个岗位暂停了。</p>
+<span id="more"></span>
+
+<h2 id="详情"><a href="#详情" class="headerlink" title="详情"></a>详情</h2><h3 id="第一题"><a href="#第一题" class="headerlink" title="第一题"></a>第一题</h3><p>题目有效时间只有 4 小时，当时没记下来，现在只能凭记忆力大概写一下了。</p>
+<p>大概是系统有个进程在写文件 <code>/tmp/hugelog</code></p>
+<h4 id="第一题第一问"><a href="#第一题第一问" class="headerlink" title="第一题第一问"></a>第一题第一问</h4><p>这一问肯定是要求将其找出来（找到 process id）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsof | grep /tmp/hugelog</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>seeknhide  773                           root    3w      REG              252,3  6887024     655475 &#x2F;tmp&#x2F;hugelog<br>seeknhide  773  802 seeknhide            root    3w      REG              252,3  6887024     655475 &#x2F;tmp&#x2F;hugelog<br>seeknhide  773  804 seeknhide            root    3w      REG              252,3  6887024     655475 &#x2F;tmp&#x2F;hugelog<br>seeknhide  773  805 seeknhide            root    3w      REG              252,3  6887024     655475 &#x2F;tmp&#x2F;hugelog</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps auxww | grep 773</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>root         773  0.0  0.2 710484  2136 ?        Sl   Jun18   0:22 &#x2F;root&#x2F;challs&#x2F;01_seeknhide&#x2F;seeknhide<br>root        5877  0.0  0.2   6608  2484 pts&#x2F;0    S+   13:53   0:00 grep –color&#x3D;auto 773</p>
+</blockquote>
+<p>so, the process is &#x2F;root&#x2F;challs&#x2F;01_seeknhide&#x2F;seeknhide, process id is: 773</p>
+<h4 id="第一题第二问"><a href="#第一题第二问" class="headerlink" title="第一题第二问"></a>第一题第二问</h4><p>写 <code>/tmp/hugelog</code> 的程序文件已经被删除，但请算出其的 md5 码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">readlink</span> -f /proc/773/exe</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>&#x2F;root&#x2F;challs&#x2F;01_seeknhide&#x2F;seeknhide (deleted)</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> /proc/773/exe a</span><br><span class="line"><span class="built_in">md5sum</span> a</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>eba0e82f5b454a492077c67ab89ae033  a</p>
+</blockquote>
+<p>so the execute file is: &#x2F;root&#x2F;challs&#x2F;01_seeknhide&#x2F;seeknhide, but it was deleted.</p>
+<p>and the md5sum is: eba0e82f5b454a492077c67ab89ae033</p>
+<h4 id="第一题第三问"><a href="#第一题第三问" class="headerlink" title="第一题第三问"></a>第一题第三问</h4><p>将这个 process 杀掉</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">kill</span> 773</span><br></pre></td></tr></table></figure>
+
+<h3 id="第二题"><a href="#第二题" class="headerlink" title="第二题"></a>第二题</h3><p>有一个 app 代码项目，有代码，有 Dockerfile。</p>
+<h4 id="第二题第一问"><a href="#第二题第一问" class="headerlink" title="第二题第一问"></a>第二题第一问</h4><p>需要 build 并运行一个 docker 容器，其监听主机的 8888 端口，可以用命令 <code>curl http://127.0.0.1:8888</code> 来测试（返回 <code>Hello, World!</code>）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> app</span><br><span class="line">docker build -t app:latest .</span><br><span class="line">docker run -it -d -p 8888:4657 app:latest</span><br><span class="line">curl http://127.0.0.1:8888</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>curl: (52) Empty reply from server</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># backup firstly</span></span><br><span class="line"><span class="built_in">cp</span> serve.py serve.py.ori</span><br><span class="line">vim serve.py</span><br><span class="line"><span class="comment"># change from localhost to 0.0.0.0</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker build -t app:new .</span><br><span class="line"><span class="comment"># stop and delete the old container</span></span><br><span class="line">docker stop cool_germain</span><br><span class="line">docker <span class="built_in">rm</span> cool_germain</span><br><span class="line"><span class="comment"># then run it by new image</span></span><br><span class="line">docker run -it -d -p 8888:4567 app:new</span><br><span class="line"><span class="comment"># test it</span></span><br><span class="line">curl http://127.0.0.1:8888</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Hello, World!</p>
+</blockquote>
+<h4 id="第二题第二问"><a href="#第二题第二问" class="headerlink" title="第二题第二问"></a>第二题第二问</h4><p>做了什么修改以及为什么要做这个修改。</p>
+<p>我的答案是：fix it by binding host from ‘localhot’ to ‘0.0.0.0’</p>
+<h3 id="第三题"><a href="#第三题" class="headerlink" title="第三题"></a>第三题</h3><p>日志文件 jwt.log 里有一些数据纪录，有些是真的，有些是假的，需要找出来真的数据纪录的条数。（有代码的要附上源码）</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> jwt</span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">import</span> hmac</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line">secret = <span class="string">&quot;_welcome_to_chaitin_&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">verify_jwt</span>(<span class="params">token</span>):</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        header, payload, signature = token.split(<span class="string">&#x27;.&#x27;</span>)</span><br><span class="line">        header_json = base64.urlsafe_b64decode(header + <span class="string">&#x27;===&#x27;</span>).decode()</span><br><span class="line">        payload_json = base64.urlsafe_b64decode(payload + <span class="string">&#x27;===&#x27;</span>).decode()</span><br><span class="line">        message = <span class="string">f&#x27;<span class="subst">&#123;header&#125;</span>.<span class="subst">&#123;payload&#125;</span>&#x27;</span></span><br><span class="line">        secret_bytes = secret.encode()</span><br><span class="line">        message_bytes = message.encode()</span><br><span class="line">        expected_signature = base64.urlsafe_b64encode(hmac.new(secret_bytes, message_bytes, hashlib.sha256).digest()).rstrip(<span class="string">b&#x27;=&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span> signature.encode() == expected_signature:</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Error verifying JWT: <span class="subst">&#123;e&#125;</span>&quot;</span>, file=sys.stderr)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">authentic_count = <span class="number">0</span></span><br><span class="line">fake_count = <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;Script execution started.&quot;</span>)</span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&#x27;jwt.log&#x27;</span>, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> file:</span><br><span class="line">    <span class="keyword">for</span> line <span class="keyword">in</span> file:</span><br><span class="line">        jwt_token = line.strip()</span><br><span class="line">        <span class="keyword">if</span> verify_jwt(jwt_token):</span><br><span class="line">            authentic_count += <span class="number">1</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            fake_count += <span class="number">1</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;Script execution finished.&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;Number of authentic JWTs: <span class="subst">&#123;authentic_count&#125;</span>&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;Number of fake JWTs: <span class="subst">&#123;fake_count&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 jwt.py</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Script execution started.<br>Script execution finished.<br>Number of authentic JWTs: 768<br>Number of fake JWTs: 90<br>Script execution started.<br>Script execution finished.<br>Number of authentic JWTs: 768<br>Number of fake JWTs: 90</p>
+</blockquote>
+<p>so, The number of authentic JWTs is: 768</p>
+<h3 id="第四题"><a href="#第四题" class="headerlink" title="第四题"></a>第四题</h3><p>有个文件：<code>make_me_happy</code></p>
+<h4 id="第四题第一问"><a href="#第四题第一问" class="headerlink" title="第四题第一问"></a>第四题第一问</h4><p>尽量找出这个文件相关的信息。</p>
+<p>这个程序执行时会去连本地的一个接口，把这个接口找出来。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file make_me_happy</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>make_me_happy: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter &#x2F;lib64&#x2F;ld-linux-x86-64.so.2, Go BuildID&#x3D;w3cEj7RamW7-qGzf3Nhs&#x2F;UpW-8zX_rMqqAZOxch9q&#x2F;g8QtiW2olQfv2K-oXiQs&#x2F;KuNmNVsa3dhXuFD3EuZR, with debug_info, not stripped</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ls</span> -l make_me_happy</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>-rw-r–r– 1 root root 6777227 Feb 16  2023 make_me_happy</p>
+</blockquote>
+<p>has no execute permission.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldd make_me_happy</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">linux-vdso.so.1 (0x00007ffcd23ca000)</span><br><span class="line">libresolv.so.2 =&gt; /lib/x86_64-linux-gnu/libresolv.so.2 (0x00007fdcb92fc000)</span><br><span class="line">libc.so.6 =&gt; /lib/x86_64-linux-gnu/libc.so.6 (0x00007fdcb90d4000)</span><br><span class="line">/lib64/ld-linux-x86-64.so.2 (0x00007fdcb9319000) </span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strings make_me_happy | grep -iE <span class="string">&#x27;(http|https|server|socket)://127&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>……invalid signature: parent certificate cannot sign this kind of certificate<a target="_blank" rel="noopener" href="http://127.0.0.1:7777/pow?q=give_me_a_string_whose_sha256sum_in_hex_begins_with_%25srefusing">http://127.0.0.1:7777/pow?q=give_me_a_string_whose_sha256sum_in_hex_begins_with_%srefusing</a> to use HTTP_PROXY value in CGI environment……</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># make make_me_happy excutable with /usr/bin/chmod has no execute permission</span></span><br><span class="line"><span class="comment"># using python3</span></span><br><span class="line">python3</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line">os.chmod(<span class="string">&#x27;make_me_happy&#x27;</span>, <span class="number">0o755</span>)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strace ./make_me_happy</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>……openat(AT_FDCWD, “&#x2F;root&#x2F;.config&#x2F;make_me_happy.conf”, O_RDONLY|O_CLOEXEC) &#x3D; -1 ENOENT (No such file or directory)<br>write(1, “Not OK\n”, 7Not OK</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">touch</span> /root/.config/make_me_happy.conf</span><br><span class="line">strace ./make_me_happy</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>……connect(7, {sa_family&#x3D;AF_INET, sin_port&#x3D;htons(7777), sin_addr&#x3D;inet_addr(“127.0.0.1”)}, 16) &#x3D; -1 EINPROGRESS (Operation now in progress)<br>epoll_ctl(4, EPOLL_CTL_ADD, 7, {events&#x3D;EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLET, data&#x3D;{u32&#x3D;4114591560, u64&#x3D;140651408633672}}) &#x3D; 0<br>epoll_pwait(4, [{events&#x3D;EPOLLIN|EPOLLOUT|EPOLLERR|EPOLLHUP|EPOLLRDHUP, data&#x3D;{u32&#x3D;4114591560, u64&#x3D;140651408633672}}], 128, 0, NULL, 0) &#x3D; 1<br>getsockopt(7, SOL_SOCKET, SO_ERROR, [ECONNREFUSED], [4]) &#x3D; 0<br>epoll_ctl(4, EPOLL_CTL_DEL, 7, 0xc0000bf074) &#x3D; 0<br>close(7)                                &#x3D; 0<br>write(1, “Not OK\n”, 7Not OK</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nc -4l 7777 &amp;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>[1] 7379</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./make_me_happy</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>GET &#x2F;pow?q&#x3D;give_me_a_string_whose_sha256sum_in_hex_begins_with_7865 HTTP&#x2F;1.1<br>Host: 127.0.0.1:7777<br>User-Agent: Go-http-client&#x2F;1.1<br>Accept-Encoding: gzip</p>
+</blockquote>
+<h4 id="第四题第二问"><a href="#第四题第二问" class="headerlink" title="第四题第二问"></a>第四题第二问</h4><p>想办法让这个程序在执行的时候，正确返回。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 server.py &amp;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>Start HTTP server on port 7777…</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./make_me_happy</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>127.0.0.1 - - [19&#x2F;Jun&#x2F;2024 17:19:02] “GET &#x2F;pow?q&#x3D;give_me_a_string_whose_sha256sum_in_hex_begins_with_e7ba HTTP&#x2F;1.1” 200 -<br>OK! Thank you, I’m happy now!</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> $?</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>0</p>
+</blockquote>
+<h4 id="第四题第三问"><a href="#第四题第三问" class="headerlink" title="第四题第三问"></a>第四题第三问</h4><p>贴出来第二问的源码（如果有的话）。</p>
+<p>我的答案：</p>
+<p>the whole code(server.py) is:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"><span class="keyword">import</span> string</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">from</span> urllib.parse <span class="keyword">import</span> urlparse, parse_qs</span><br><span class="line"><span class="keyword">from</span> http.server <span class="keyword">import</span> SimpleHTTPRequestHandler, HTTPServer</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">find_sha256_prefix</span>(<span class="params">prefix</span>):</span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        candidate = <span class="string">&#x27;&#x27;</span>.join(random.choices(string.ascii_letters + string.digits, k=<span class="number">16</span>))</span><br><span class="line">        sha256sum = hashlib.sha256(candidate.encode()).hexdigest()</span><br><span class="line">        <span class="keyword">if</span> sha256sum.startswith(prefix):</span><br><span class="line">            <span class="keyword">return</span> candidate</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">CustomHandler</span>(<span class="title class_ inherited__">SimpleHTTPRequestHandler</span>):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">do_GET</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">if</span> <span class="variable language_">self</span>.path.startswith(<span class="string">&quot;/pow&quot;</span>):</span><br><span class="line">            query_components = parse_qs(urlparse(<span class="variable language_">self</span>.path).query)</span><br><span class="line">            prefix_template = query_components.get(<span class="string">&#x27;q&#x27;</span>, [<span class="string">&#x27;&#x27;</span>])[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> <span class="string">&quot;with_&quot;</span> <span class="keyword">in</span> prefix_template:</span><br><span class="line">                prefix = prefix_template.split(<span class="string">&quot;with_&quot;</span>)[<span class="number">1</span>]</span><br><span class="line">                suffix = find_sha256_prefix(prefix)</span><br><span class="line">                response = suffix.encode()</span><br><span class="line">                <span class="variable language_">self</span>.send_response(<span class="number">200</span>)</span><br><span class="line">                <span class="variable language_">self</span>.send_header(<span class="string">&#x27;Content-type&#x27;</span>, <span class="string">&#x27;text/plain&#x27;</span>)</span><br><span class="line">                <span class="variable language_">self</span>.send_header(<span class="string">&#x27;Content-length&#x27;</span>, <span class="built_in">len</span>(response))</span><br><span class="line">                <span class="variable language_">self</span>.end_headers()</span><br><span class="line">                <span class="variable language_">self</span>.wfile.write(response)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="variable language_">self</span>.send_response(<span class="number">404</span>)</span><br><span class="line">            <span class="variable language_">self</span>.end_headers()</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>():</span><br><span class="line">    server_address = (<span class="string">&#x27;&#x27;</span>, <span class="number">7777</span>)</span><br><span class="line">    httpd = HTTPServer(server_address, CustomHandler)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;Start HTTP server on port 7777...&#x27;</span>)</span><br><span class="line">    httpd.serve_forever()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    run()</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这倒还真是 SRE 的题目，基本上都跟开发有关系。这里由于需要的环境简单，而且公司方面提供了一个完整的试验环境，所以所有的 python 程序我都做过测试。</p>
+<hr>
+<p><em>本文由 <a href="https://ming.theyan.gs/">老杨</a> 原创，转载请注明出处。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"># docker</a>
+              <a href="/tags/bash/" rel="tag"># bash</a>
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/SRE/" rel="tag"># SRE</a>
+              <a href="/tags/interview/" rel="tag"># interview</a>
+              <a href="/tags/lsof/" rel="tag"># lsof</a>
+              <a href="/tags/readlink/" rel="tag"># readlink</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/01/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20DevOps%20%E8%BF%9C%E7%A8%8B%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html" rel="prev" title="我做的某公司 DevOps 远程职位的面试题">
+                  <i class="fa fa-angle-left"></i> 我做的某公司 DevOps 远程职位的面试题
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/03/AWS%20%E5%AE%98%E6%96%B9%E7%9A%84%E9%83%A8%E7%BD%B2%20Python%20%E4%BB%A3%E7%A0%81%E5%88%B0%20Lambda%20function%20%E4%B8%8A%E5%8E%BB%E7%9A%84%E4%B8%A4%E7%A7%8D%E6%96%B9%E6%B3%95/index.html" rel="next" title="AWS 官方的部署 Python 代码到 Lambda function 上去的两种方法">
+                  AWS 官方的部署 Python 代码到 Lambda function 上去的两种方法 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

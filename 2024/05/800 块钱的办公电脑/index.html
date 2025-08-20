@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="我用 800 块钱买了台办公用的 Mini PC最近，我花了 800 块钱买了一台 Mini PC，用来办公。刚好这四个月在公司领到的每月 200 块钱电脑补贴，全都花光了。算是“取之于公司，用之于公司”吧，哈哈。 这次的购买经历不仅让我更深刻地体会到“消费降级”的现实，还让我感受到了科技进步所带来的性价比红利。在预算有限的情况下，这台 Mini PC 不仅完美满足了我的日常需求，还让我对它的未来">
+<meta property="og:type" content="article">
+<meta property="og:title" content="800 块钱的办公电脑">
+<meta property="og:url" content="https://ming.theyan.gs/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="我用 800 块钱买了台办公用的 Mini PC最近，我花了 800 块钱买了一台 Mini PC，用来办公。刚好这四个月在公司领到的每月 200 块钱电脑补贴，全都花光了。算是“取之于公司，用之于公司”吧，哈哈。 这次的购买经历不仅让我更深刻地体会到“消费降级”的现实，还让我感受到了科技进步所带来的性价比红利。在预算有限的情况下，这台 Mini PC 不仅完美满足了我的日常需求，还让我对它的未来">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/haw-haw/image-hosting/master/img/Screenshot%202024-11-30%20at%2012.33.08.jpg">
+<meta property="article:published_time" content="2024-05-12T14:32:47.000Z">
+<meta property="article:modified_time" content="2024-05-13T11:36:12.000Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="minipc">
+<meta property="article:tag" content="Debian">
+<meta property="article:tag" content="trixie">
+<meta property="article:tag" content="xfce">
+<meta property="article:tag" content="N100">
+<meta property="article:tag" content="Intel">
+<meta property="article:tag" content="iwlwifi-so-a0-jf-b0-77.ucode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/haw-haw/image-hosting/master/img/Screenshot%202024-11-30%20at%2012.33.08.jpg">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/index.html","path":"2024/05/800 块钱的办公电脑/index.html","title":"800 块钱的办公电脑"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>800 块钱的办公电脑 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%88%91%E7%94%A8-800-%E5%9D%97%E9%92%B1%E4%B9%B0%E4%BA%86%E5%8F%B0%E5%8A%9E%E5%85%AC%E7%94%A8%E7%9A%84-Mini-PC"><span class="nav-number">1.</span> <span class="nav-text">我用 800 块钱买了台办公用的 Mini PC</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%8E%E7%A1%AC%E4%BB%B6%E6%A6%82%E8%A7%88"><span class="nav-number">1.1.</span> <span class="nav-text">配置与硬件概览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%B3%BB%E7%BB%9F%E9%80%89%E6%8B%A9%E4%B8%8E%E4%BD%BF%E7%94%A8%E4%BD%93%E9%AA%8C"><span class="nav-number">1.2.</span> <span class="nav-text">系统选择与使用体验</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%89%E6%8B%A9-Mini-PC-%E7%9A%84%E7%90%86%E7%94%B1"><span class="nav-number">1.3.</span> <span class="nav-text">选择 Mini PC 的理由</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Mac-Mini-M2-%E7%9A%84%E8%AF%B1%E6%83%91"><span class="nav-number">1.3.1.</span> <span class="nav-text">Mac Mini M2 的诱惑</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%9E%E5%85%AC%E5%92%8C%E8%BF%9C%E7%A8%8B%E5%B7%A5%E4%BD%9C%E7%9A%84%E4%BE%BF%E5%88%A9%E6%80%A7"><span class="nav-number">1.4.</span> <span class="nav-text">办公和远程工作的便利性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E5%8A%9F%E8%80%97%E4%B8%8E%E6%9C%AA%E6%9D%A5%E7%9A%84%E6%BD%9C%E5%8A%9B"><span class="nav-number">1.5.</span> <span class="nav-text">低功耗与未来的潜力</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E%E6%B6%88%E8%B4%B9%E9%99%8D%E7%BA%A7%E7%9A%84%E6%84%9F%E6%85%A8"><span class="nav-number">1.6.</span> <span class="nav-text">关于消费降级的感慨</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/05/800%20%E5%9D%97%E9%92%B1%E7%9A%84%E5%8A%9E%E5%85%AC%E7%94%B5%E8%84%91/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="800 块钱的办公电脑 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          800 块钱的办公电脑
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-05-12 22:32:47" itemprop="dateCreated datePublished" datetime="2024-05-12T22:32:47+08:00">2024-05-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-05-13 19:36:12" itemprop="dateModified" datetime="2024-05-13T19:36:12+08:00">2024-05-13</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="我用-800-块钱买了台办公用的-Mini-PC"><a href="#我用-800-块钱买了台办公用的-Mini-PC" class="headerlink" title="我用 800 块钱买了台办公用的 Mini PC"></a>我用 800 块钱买了台办公用的 Mini PC</h1><p>最近，我花了 800 块钱买了一台 Mini PC，用来办公。刚好这四个月在公司领到的每月 200 块钱电脑补贴，全都花光了。算是“取之于公司，用之于公司”吧，哈哈。</p>
+<p>这次的购买经历不仅让我更深刻地体会到“消费降级”的现实，还让我感受到了科技进步所带来的性价比红利。在预算有限的情况下，这台 Mini PC 不仅完美满足了我的日常需求，还让我对它的未来用途充满期待。接下来，我详细聊聊这次购买的选择过程、使用体验以及相关感悟。</p>
+<span id="more"></span>
+
+<h2 id="配置与硬件概览"><a href="#配置与硬件概览" class="headerlink" title="配置与硬件概览"></a>配置与硬件概览</h2><p>这台 Mini PC 的硬件配置如下：</p>
+<ul>
+<li><strong>CPU</strong>: Intel 第 12 代 N100<ul>
+<li>4 核心</li>
+<li>缺省运行在 <strong>0.8 GHz</strong> 的低功耗模式，但睿频最高可达 <strong>3.4 GHz</strong></li>
+</ul>
+</li>
+<li><strong>内存</strong>: <strong>DDR4</strong>，主频未知</li>
+<li><strong>存储</strong>: <strong>M.2 2280 PCIe SSD</strong>，容量 512 GB</li>
+<li><strong>网络</strong>: 双频 WiFi（2.4G+5G）+ 蓝牙</li>
+<li><strong>其他物理接口</strong>:<ul>
+<li><strong>USB3.2</strong> × 2</li>
+<li><strong>USB2.0</strong> × 2</li>
+<li><strong>耳机接口</strong> × 1</li>
+<li><strong>千兆以太网卡</strong> × 1</li>
+<li><strong>HDMI</strong> × 1</li>
+<li><strong>DP（DisplayPort）</strong> × 1</li>
+</ul>
+</li>
+</ul>
+<p>此外，它的体积和重量也非常小巧：</p>
+<ul>
+<li>尺寸：<strong>124.5 x 112 x 50.8 mm</strong></li>
+<li>重量：约 <strong>400 克</strong></li>
+</ul>
+<p>整机可以轻松放在桌面的一角，或者显示器下面的空隙。</p>
+<h2 id="系统选择与使用体验"><a href="#系统选择与使用体验" class="headerlink" title="系统选择与使用体验"></a>系统选择与使用体验</h2><p>拿到手后，我给这台 Mini PC 装了 <strong>Debian testing</strong> 系统，当前版本是 <strong>Debian 13</strong>，字母代号 <strong>trixie</strong>，桌面环境选择了轻量的 <strong>XFCE</strong>。安装过程非常顺利，硬件驱动几乎开箱即用，尤其是 WiFi 和蓝牙的兼容性让我非常满意。</p>
+<p>但是装完以后进入桌面发现 wifi 用不了。可能是安装时没选相关 non-free 的包的问题吧。但是经过简单的排错、下载了一个 <a target="_blank" rel="noopener" href="https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tree/iwlwifi-so-a0-jf-b0-77.ucode">https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tree/iwlwifi-so-a0-jf-b0-77.ucode</a> 放到 &#x2F;usr&#x2F;lib&#x2F;firmware&#x2F; 目录下以后就好了。</p>
+<p>下面是一张我使用 <strong>neofetch</strong> 工具查看系统和硬件信息的截图：</p>
+<p><img src="https://raw.githubusercontent.com/haw-haw/image-hosting/master/img/Screenshot%202024-11-30%20at%2012.33.08.jpg" alt="neofetch 系统信息"></p>
+<p>从图中可以清晰看到系统的核心信息：</p>
+<ul>
+<li><strong>系统</strong>: Debian GNU&#x2F;Linux trixie&#x2F;sid x86_64</li>
+<li><strong>内核</strong>: 6.11.7-amd64</li>
+<li><strong>运行时间</strong>: 已开机 7 天 19 小时</li>
+<li><strong>CPU</strong>: Intel N100 (4 核 @ 3.4 GHz)</li>
+<li><strong>GPU</strong>: Intel Alder Lake-N UHD Graphics</li>
+<li><strong>内存使用</strong>: 11.88 GB &#x2F; 15.70 GB</li>
+</ul>
+<h2 id="选择-Mini-PC-的理由"><a href="#选择-Mini-PC-的理由" class="headerlink" title="选择 Mini PC 的理由"></a>选择 Mini PC 的理由</h2><h3 id="Mac-Mini-M2-的诱惑"><a href="#Mac-Mini-M2-的诱惑" class="headerlink" title="Mac Mini M2 的诱惑"></a>Mac Mini M2 的诱惑</h3><p>有趣的是，这次购买正好碰上了 <strong>Mac Mini M4</strong> 发售。因为各种折扣补贴，当时这台设备的价格非常美好，只要 <strong>3000 出头</strong>。有同事也推荐我直接买 Mac Mini，毕竟性能和生态都很优秀，而且这好像还是第一次改了模具，整个机型变得比上一版小巧了很多很多。</p>
+<p>我确实犹豫了一下，但仔细思考后，还是选择了这台便宜了两千多块的 Mini PC。原因很简单：</p>
+<ol>
+<li><strong>预算有限</strong>：800 元 vs 3000 元，差价不是一星半点。即使 Mac Mini 性能更好，但对我来说这些性能是溢出的，完全用不到。</li>
+<li><strong>实际需求</strong>：我的工作主要依赖 <strong>SSH</strong> 和 <strong>浏览器</strong>，对性能的要求并不高。而这台 Mini PC 在省钱的同时，已经能很好地满足这些需求。</li>
+<li><strong>可玩性更高</strong>：用 Debian 和 XFCE 环境，比起 macOS，更符合我的习惯，也更自由可控。</li>
+</ol>
+<p>好吧，我摊牌了，其实原因就是第一个，其他两个都是搭头。</p>
+<p>所以，尽管 Mac Mini M4 也是性价比很高的设备，但对比我的实际需求，这台 800 元的 Mini PC 显然是更务实的选择。</p>
+<h2 id="办公和远程工作的便利性"><a href="#办公和远程工作的便利性" class="headerlink" title="办公和远程工作的便利性"></a>办公和远程工作的便利性</h2><p>目前，这台 Mini PC 是我主要的办公设备，而且我设置了它<strong>每天不关机</strong>，一直保持在线状态。在家时，如果需要处理工作，只要通过远程工具直接登录它，就可以快速进入工作状态，非常方便。</p>
+<p>同时，得益于低功耗特性，而且的确负载也轻，它 24 小时开机几乎感觉不到风扇的噪音。这样的小型设备，不仅可以满足日常办公需求，还能成为远程协作的可靠节点。</p>
+<h2 id="低功耗与未来的潜力"><a href="#低功耗与未来的潜力" class="headerlink" title="低功耗与未来的潜力"></a>低功耗与未来的潜力</h2><p>这台 Mini PC 的另一个显著优势是功耗极低。Intel N100 平台在缺省状态下只跑 <strong>0.8 GHz</strong>，风扇几乎听不到声音。即使长时间开机运行，耗电和发热都非常可控。偶尔需要睿频到 <strong>3.4 GHz</strong> 时，性能释放也完全够用。</p>
+<p>得益于低功耗、小尺寸的特点，这台电脑即使以后不再用作办公机，也有很多未来用途。我已经有以下几个计划：</p>
+<ul>
+<li><strong>NAS</strong>：搭建一个家庭文件存储和同步服务，继续配合 Syncthing 使用。</li>
+<li><strong>Docker 容器</strong>：托管一些轻量级的服务，比如媒体服务器、工具脚本等。</li>
+<li><strong>远程访问节点</strong>：利用 ZeroTier 和 Tailscale，随时随地访问家中设备。</li>
+</ul>
+<p>对比起高功耗的传统台式机，这样的小型设备更适合用作家庭服务器，长期运行也不用担心电费问题。</p>
+<h2 id="关于消费降级的感慨"><a href="#关于消费降级的感慨" class="headerlink" title="关于消费降级的感慨"></a>关于消费降级的感慨</h2><p>老实说，我选择这台 Mini PC，主要还是因为<strong>个人经济状况的限制</strong>。最近手头确实有点紧，所以只能选择性价比最高的方案。以前可能会考虑更高端的设备，比如 Mac Mini，但现在不得不降低预算，选择更务实的解决方案。</p>
+<p>不过，虽然是消费降级，但我并没有感到体验上的妥协。反而在科技发展的红利下，我用 800 块就买到了一台能够胜任办公、还能支持未来扩展的 Mini PC。放在几年前，这样的设备简直是想都不敢想。</p>
+<p>总的来说，这次的购买让我非常满意。当然，为了避免“带货”嫌疑，就不提具体品牌和型号以及购买的平台了。不过，如果你也在寻找一台高性价比的办公电脑，这种 Mini PC 确实值得考虑。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/minipc/" rel="tag"># minipc</a>
+              <a href="/tags/Debian/" rel="tag"># Debian</a>
+              <a href="/tags/trixie/" rel="tag"># trixie</a>
+              <a href="/tags/xfce/" rel="tag"># xfce</a>
+              <a href="/tags/N100/" rel="tag"># N100</a>
+              <a href="/tags/Intel/" rel="tag"># Intel</a>
+              <a href="/tags/iwlwifi-so-a0-jf-b0-77-ucode/" rel="tag"># iwlwifi-so-a0-jf-b0-77.ucode</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/04/centralized-logging/index.html" rel="prev" title="centralized logging on Amazon Linux 2023">
+                  <i class="fa fa-angle-left"></i> centralized logging on Amazon Linux 2023
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/06/Prometheus%20%E5%AE%98%E6%96%B9%20Docker%20image%20%E7%9A%84%E4%B8%80%E4%B8%AA%20bug/index.html" rel="next" title="Prometheus 官方 Docker image 的一个 bug">
+                  Prometheus 官方 Docker image 的一个 bug <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="在现代网络架构中，VPN（虚拟专用网络）技术的应用越来越广泛。本文将探讨在我司 IDC 中，使用 WireGuard 实现的 VPN 连接中遇到的一个有趣现象。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WireGuard 源 IP 地址&quot;漂移&quot;问题的前因后果">
+<meta property="og:url" content="https://ming.theyan.gs/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="在现代网络架构中，VPN（虚拟专用网络）技术的应用越来越广泛。本文将探讨在我司 IDC 中，使用 WireGuard 实现的 VPN 连接中遇到的一个有趣现象。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-08-17T13:24:36.000Z">
+<meta property="article:modified_time" content="2024-08-23T14:52:27.000Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="udp">
+<meta property="article:tag" content="wireguard">
+<meta property="article:tag" content="iperf3">
+<meta property="article:tag" content="endpoint">
+<meta property="article:tag" content="smokeping">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/index.html","path":"2024/08/WireGuard 源 IP 地址\"漂移\"问题的前因后果/index.html","title":"WireGuard 源 IP 地址\"漂移\"问题的前因后果"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>WireGuard 源 IP 地址"漂移"问题的前因后果 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF%E6%8F%8F%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">场景描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E5%B8%B8%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">异常现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B7%B1%E5%85%A5%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">深入分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E8%AE%BA"><span class="nav-number">4.</span> <span class="nav-text">结论</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">113</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">508</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2024/08/WireGuard%20%E6%BA%90%20IP%20%E5%9C%B0%E5%9D%80%22%E6%BC%82%E7%A7%BB%22%E9%97%AE%E9%A2%98%E7%9A%84%E5%89%8D%E5%9B%A0%E5%90%8E%E6%9E%9C/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="WireGuard 源 IP 地址&quot;漂移&quot;问题的前因后果 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          WireGuard 源 IP 地址"漂移"问题的前因后果
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2024-08-17 21:24:36" itemprop="dateCreated datePublished" datetime="2024-08-17T21:24:36+08:00">2024-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2024-08-23 22:52:27" itemprop="dateModified" datetime="2024-08-23T22:52:27+08:00">2024-08-23</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在现代网络架构中，VPN（虚拟专用网络）技术的应用越来越广泛。本文将探讨在我司 IDC 中，使用 WireGuard 实现的 VPN 连接中遇到的一个有趣现象。</p>
+<span id="more"></span>
+
+<h2 id="场景描述"><a href="#场景描述" class="headerlink" title="场景描述"></a>场景描述</h2><p>我司在 IDC 中有一台运行 Debian 的服务器 L1，有两个上联口：E-a 和 E-b，分别连接到运营商 I-a 和 I-b。IP 地址为 ip-a 和 ip-b。L1 上的策略路由很简单：</p>
+<ul>
+<li>源地址为 ip-a 的数据包通过 E-a 口走 I-a</li>
+<li>其他数据包则通过默认出口 E-b 走 I-b（源地址自然是 ip-b）</li>
+</ul>
+<p>此外，L1 还通过网口 E-c 连接内网，IP 地址为 ip-c。L1 上运行 WirGuard，绑定 0.0.0.0 的 udp 端口 12345。</p>
+<p>在办公室，我司还有一台运行 Debian 的机器 L2。由于 L2 位于内网中，没有公网 IP。L2 上也运行着 WireGuard，绑定在 0.0.0.0 的（udp）端口 12345。同时，我在办公室的路由器上做了端口映射，将 udp 12345 端口映射到 L2（虽然这完全没什么用）。</p>
+<p>L2 的 WireGuard 配置中，peer 的 endpoint 指定为 L1 的 IP 地址 ip-a。由于 L2 没有公网地址且出口地址不固定，因此在 L1 的 WireGuard 配置中并没有指定 L2 的 IP 地址。就这样，L1 和 L2 上的 WireGuard 的连接顺利建立，一切都如预期般正常运行。</p>
+<h2 id="异常现象"><a href="#异常现象" class="headerlink" title="异常现象"></a>异常现象</h2><p>其实，L2 上还运行着一个 SmokePing，监测着 ip-a、ip-b 和 ip-c，当然也还有其他，不过那些跟这里没啥关系，也就不提了。</p>
+<p>某天我在 Smokeping 监控中发现，ping ip-c 的（时间）值明显高于 ping ip-a 的值，且与 ping ip-b 的相近。这一现象让我感到困惑，因为到 ip-c 的数据包走的逻辑链路（通过 WireGuard 隧道）实际上应该与到 ip-a 的物理链路完全相同，所以 ping ip-c 的数据应该跟 ping ip-a 的几乎一样才对。</p>
+<p>我的第一反应是，可能是办公室的网络接入商或 I-a 对 UDP 包进行了 QoS 限速，因为 WireGuard 使用的是 UDP 协议。经过与客服的沟通，确认并没有针对 UDP 包的限速策略。</p>
+<p>接着，我使用 <code>iperf3</code> 在 L1 和 L2 之间进行了测速，发现走 UDP 和走 TCP 的测试结果数据引并没有显著差别，这表明问题并不在于 UDP 包有被干扰。随后，我在 L2 上使用 <code>tcpdump</code> 监听 WireGuard 的数据包，结果让我大吃一惊：所有的数据包都是与 ip-b 的端口 12345 进行交互，而不是预期中的 ip-a！这也解释了为什么 ping ip-c 的延迟与 ping ip-b 的延迟相近，因为数据实际上是通过到 ip-b 的物理链路进行的。</p>
+<h2 id="深入分析"><a href="#深入分析" class="headerlink" title="深入分析"></a>深入分析</h2><p>面对这一现象，我感到百思不得其解。于是，我记录下当前的状况，并重启了 L2 上的 WireGuard，结果一切又都恢复正常：WireGuard 的数据交互对端 IP 变回了 ip-a，ping ip-c 的延迟也降到了与 ping ip-a 相同的水平。</p>
+<p>进一步查阅资料后，我发现 WireGuard 具有 endpoint 自动更新的机制。虽然 L1 上没有 L2 端的 endpoint 数据，但 L2 上有 L1 的数据。当 L2 第一次连接 L1 时，L1 会记录下 L2 的 endpoint 数据。如果 L2 使用了不同的 IP 地址连接 L1，L1 会更新 L2 的 endpoint IP 地址。反之亦然。这意味着，当 L1 从 E-b 口以 ip-b 作为源地址连接 L2 时，L2 也会更新 L1 的 endpoint IP 地址。</p>
+<p>最终，我意识到问题的根源在于 L1 突然使用源 IP 为 ip-b 从 E-b 口发送 WireGuard 数据包给 L2。期间，我发现办公网的网络曾经闪断过几分钟。真相逐渐浮出水面：当 L2 的上联公网链路断开时，L1 由于长时间未收到来自 L2 的 WireGuard 数据包，可能出于某种原因主动向 L2 发送 WireGuard 包，查找 L2 的 endpoint IP 和端口数据。此时，由于源地址未定，数据包直接通过 E-b 口发送，源地址被设为 ip-b。这些数据包持续发送到 L2，直到 L2 的上联网络恢复。L2 收到来自 ip-b 的 L1 的 WireGuard 数据包后，触发了更新 L1 的 endpoint 数据，从而开始与 L1 的 ip-b 进行 WireGuard 数据交互。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>通过这一系列的分析，整个逻辑变得自洽了。这一现象不仅揭示了 WireGuard 的灵活性和自动化特性，也提醒我们在设计网络架构时，需考虑到各种可能的网络状态变化。希望这篇文章能为您在使用 WireGuard 或其他 VPN 技术时提供一些启示。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/udp/" rel="tag"># udp</a>
+              <a href="/tags/wireguard/" rel="tag"># wireguard</a>
+              <a href="/tags/iperf3/" rel="tag"># iperf3</a>
+              <a href="/tags/endpoint/" rel="tag"># endpoint</a>
+              <a href="/tags/smokeping/" rel="tag"># smokeping</a>
+              <a href="/tags/linux/" rel="tag"># linux</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/07/the%20bug%20of%20cloudfront/index.html" rel="prev" title="AWS cloudfront 的一个小 bug">
+                  <i class="fa fa-angle-left"></i> AWS cloudfront 的一个小 bug
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2024/09/something%20about%20healthcheck%20for%20Docker%20container/index.html" rel="next" title="something about healthech for docker container">
+                  something about healthech for docker container <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
