@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="背景我厂在 AWS 上有 tooling、dev、qa、preprod 四个环境，VPC 之间通过 peering 互通。日常运维需要从办公网络访问这些 VPC 内的资源，走的是 AWS Client VPN。 Client VPN 的认证方式我们选了证书双向认证（mutual TLS）。AWS 也支持 Active Directory 或 SAML SSO 认证，但我们的场景比较简单——十来个人">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AWS Client VPN：自建 CA + Lambda 签发的完整方案">
+<meta property="og:url" content="https://ming.theyan.gs/2025/04/client-vpn-self-managed-ca-replace-acm-pca/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="背景我厂在 AWS 上有 tooling、dev、qa、preprod 四个环境，VPC 之间通过 peering 互通。日常运维需要从办公网络访问这些 VPC 内的资源，走的是 AWS Client VPN。 Client VPN 的认证方式我们选了证书双向认证（mutual TLS）。AWS 也支持 Active Directory 或 SAML SSO 认证，但我们的场景比较简单——十来个人">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-04-14T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-01T00:55:10.305Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="AWS">
+<meta property="article:tag" content="Lambda">
+<meta property="article:tag" content="Terraform">
+<meta property="article:tag" content="Client VPN">
+<meta property="article:tag" content="openssl">
+<meta property="article:tag" content="证书管理">
+<meta property="article:tag" content="Secrets Manager">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/04/client-vpn-self-managed-ca-replace-acm-pca/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/04/client-vpn-self-managed-ca-replace-acm-pca/index.html","path":"2025/04/client-vpn-self-managed-ca-replace-acm-pca/index.html","title":"AWS Client VPN：自建 CA + Lambda 签发的完整方案"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>AWS Client VPN：自建 CA + Lambda 签发的完整方案 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%B6%E6%9E%84%E6%A6%82%E8%A7%88"><span class="nav-number">2.</span> <span class="nav-text">架构概览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E7%94%A8-ACM-PCA"><span class="nav-number">3.</span> <span class="nav-text">为什么不用 ACM PCA</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Lambda-%E7%AD%BE%E5%8F%91%E6%9C%8D%E5%8A%A1"><span class="nav-number">4.</span> <span class="nav-text">Lambda 签发服务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E6%80%8E%E4%B9%88%E7%AD%BE%E5%8F%91%E8%AF%81%E4%B9%A6"><span class="nav-number">4.1.</span> <span class="nav-text">用户怎么签发证书</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%84%E8%A3%85-ovpn-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">4.2.</span> <span class="nav-text">组装 .ovpn 配置文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%98%E5%B7%A5%E7%A6%BB%E8%81%8C%E6%80%8E%E4%B9%88%E5%8A%9E"><span class="nav-number">4.3.</span> <span class="nav-text">员工离职怎么办</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AD%BE%E5%8F%91%E4%BA%BA%E8%BF%BD%E8%B8%AA"><span class="nav-number">5.</span> <span class="nav-text">签发人追踪</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CRL%EF%BC%9A%E4%B8%8D%E7%BB%AD%E5%B0%B1%E5%85%A8%E5%91%98%E6%96%AD%E8%BF%9E"><span class="nav-number">6.</span> <span class="nav-text">CRL：不续就全员断连</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Function-URL-%E6%9D%83%E9%99%90%E7%9A%84%E5%9D%91"><span class="nav-number">7.</span> <span class="nav-text">Function URL 权限的坑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B"><span class="nav-number">8.</span> <span class="nav-text">迁移过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#S3-%E7%8A%B6%E6%80%81%E6%96%87%E4%BB%B6%E4%B8%8E%E7%89%88%E6%9C%AC%E7%AE%A1%E7%90%86"><span class="nav-number">9.</span> <span class="nav-text">S3 状态文件与版本管理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">10.</span> <span class="nav-text">多说几句</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">118</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">522</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/04/client-vpn-self-managed-ca-replace-acm-pca/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="AWS Client VPN：自建 CA + Lambda 签发的完整方案 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AWS Client VPN：自建 CA + Lambda 签发的完整方案
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-04-15 00:00:00" itemprop="dateCreated datePublished" datetime="2025-04-15T00:00:00+08:00">2025-04-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-10-01 08:55:10" itemprop="dateModified" datetime="2026-10-01T08:55:10+08:00">2026-10-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1/" itemprop="url" rel="index"><span itemprop="name">方案设计</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>我厂在 AWS 上有 tooling、dev、qa、preprod 四个环境，VPC 之间通过 peering 互通。日常运维需要从办公网络访问这些 VPC 内的资源，走的是 AWS Client VPN。</p>
+<p>Client VPN 的认证方式我们选了证书双向认证（mutual TLS）。AWS 也支持 Active Directory 或 SAML SSO 认证，但我们的场景比较简单——十来个人用，不想为此多维护一套认证基础设施。证书认证的好处是纯客户端侧，不依赖额外的认证服务，配好 <code>.ovpn</code> 文件就能连。</p>
+<span id="more"></span>
+
+<h2 id="架构概览"><a href="#架构概览" class="headerlink" title="架构概览"></a>架构概览</h2><p>整体结构：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">办公网络</span><br><span class="line">  └── 用户（持 .ovpn 配置 = 客户端证书 + 私钥）</span><br><span class="line">        │</span><br><span class="line">        ▼</span><br><span class="line">AWS Client VPN Endpoint（ap-southeast-1）</span><br><span class="line">  ├── 认证：mutual TLS（自建 Root CA 签发的证书）</span><br><span class="line">  ├── 关联子网：tooling VPC private subnet</span><br><span class="line">  ├── Split tunnel：仅授权网段走 VPN</span><br><span class="line">  └── 路由：tooling VPC + dev/qa/preprod 通过 peering</span><br></pre></td></tr></table></figure>
+
+<p>证书这一层，我们用自建 CA 替代了 AWS 的 ACM Private CA。原因后面会讲，但先说整体的证书体系：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Self-managed Root CA</span><br><span class="line">  私钥 → Secrets Manager（只有 Lambda 能读）</span><br><span class="line">  CA cert → S3 + ACM</span><br><span class="line">  │</span><br><span class="line">  ├── Server Cert → 导入 ACM，endpoint 使用</span><br><span class="line">  │</span><br><span class="line">  └── Per-User Client Certs</span><br><span class="line">      用户生成私钥 + CSR → Lambda 签发 → 返回证书</span><br><span class="line">      Lambda 不接触用户私钥</span><br></pre></td></tr></table></figure>
+
+<p>用户自持私钥，Lambda 只接收 CSR 返回签好的证书。CA 私钥锁在 Secrets Manager 里，包括我自己在内没有人能把它下载到本地。</p>
+<h2 id="为什么不用-ACM-PCA"><a href="#为什么不用-ACM-PCA" class="headerlink" title="为什么不用 ACM PCA"></a>为什么不用 ACM PCA</h2><p>最初我们用的是 ACM Private CA 来管证书。ACM PCA 是 AWS 的托管 CA 服务，开箱即用，签发、吊销都是 API 调用。</p>
+<p>问题是它每个 CA 收 <strong>$400&#x2F;月</strong>。十来个人的 VPN，一年下来将近五千美金，就为了 <code>issue-certificate</code> 和 <code>revoke-certificate</code> 两个 API——这两件事 openssl 都能做。</p>
+<p>换自建 CA 之后，CA 私钥存 Secrets Manager 大约 $0.80&#x2F;月，Lambda 和 S3 在 free tier 范围内，基本等于零成本。每月省下来的钱，一年够买几台不错的显示器了。</p>
+<p>当然省钱只是一方面。自建 CA 还让我们可以做一些 PCA 做不了（或者做起来很别扭）的事情，比如后面要讲的签发人追踪。</p>
+<h2 id="Lambda-签发服务"><a href="#Lambda-签发服务" class="headerlink" title="Lambda 签发服务"></a>Lambda 签发服务</h2><p>Lambda 是整个方案的核心，做四件事：</p>
+<p><strong>issue</strong> — 接收 base64 编码的 CSR，从 Secrets Manager 取 CA 私钥，签发客户端证书（有效期 365 天），更新 S3 上的 index.txt 和 serial，返回签好的证书 PEM。</p>
+<p><strong>revoke</strong> — 按 CN、序列号或签发人 ARN 吊销证书。吊销后自动生成新的 CRL，然后调 <code>ec2:ImportClientVpnClientCertificateRevocationList</code> 直接推给 VPN endpoint。这比 PCA 的方式更靠谱——PCA 的 CRL 只是落到 S3，并不会自动导入到 endpoint，等于吊销了但没生效。</p>
+<p><strong>list</strong> — 列出所有证书的状态（有效&#x2F;已吊销），合并签发人信息。</p>
+<p><strong>refresh-crl</strong> — 重新签发 CRL 以延长有效期，导入 endpoint，并推 CloudWatch 自定义指标 <code>CRLDaysRemaining</code>。</p>
+<p>Lambda 设了 <code>reserved_concurrent_executions = 1</code>，一次只跑一个实例。index.txt 和 serial 这些文件是读改写的，不能并发。十来个人的 VPN，排队签发不会有性能问题。</p>
+<h3 id="用户怎么签发证书"><a href="#用户怎么签发证书" class="headerlink" title="用户怎么签发证书"></a>用户怎么签发证书</h3><p>通过 Lambda Function URL 调用，用 curl 的 <code>--aws-sigv4</code> 做 SigV4 签名：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 设置环境变量</span></span><br><span class="line"><span class="built_in">export</span> AWS_PROFILE=your-profile</span><br><span class="line"><span class="built_in">export</span> AWS_REGION=ap-southeast-1</span><br><span class="line"><span class="built_in">export</span> FUNC_URL=<span class="string">&quot;https://xxxxxxxxxx.lambda-url.ap-southeast-1.on.aws/&quot;</span></span><br><span class="line"><span class="built_in">export</span> CLIENT_NAME=<span class="string">&quot;your.name&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成私钥（妥善保管，不要分享）</span></span><br><span class="line">openssl genrsa -out <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>.key&quot;</span> 2048</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成 CSR</span></span><br><span class="line">openssl req -new \</span><br><span class="line">  -key <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>.key&quot;</span> \</span><br><span class="line">  -out <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>.csr&quot;</span> \</span><br><span class="line">  -subj <span class="string">&quot;/CN=<span class="variable">$&#123;CLIENT_NAME&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 提交 CSR 给 Lambda 签发</span></span><br><span class="line">CSR_B64=$(<span class="built_in">base64</span> -i <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>.csr&quot;</span> | <span class="built_in">tr</span> -d <span class="string">&#x27;\n&#x27;</span>)</span><br><span class="line">curl <span class="string">&quot;<span class="variable">$FUNC_URL</span>&quot;</span> \</span><br><span class="line">  --aws-sigv4 <span class="string">&quot;aws:amz:<span class="variable">$&#123;AWS_REGION&#125;</span>:lambda&quot;</span> \</span><br><span class="line">  --user <span class="string">&quot;<span class="subst">$(aws configure get aws_access_key_id --profile $AWS_PROFILE)</span>:<span class="subst">$(aws configure get aws_secret_access_key --profile $AWS_PROFILE)</span>&quot;</span> \</span><br><span class="line">  -H <span class="string">&quot;x-amz-security-token: <span class="subst">$(aws configure get aws_session_token --profile $AWS_PROFILE)</span>&quot;</span> \</span><br><span class="line">  -H <span class="string">&quot;Content-Type: application/json&quot;</span> \</span><br><span class="line">  -X POST \</span><br><span class="line">  -d <span class="string">&quot;&#123;\&quot;action\&quot;:\&quot;issue\&quot;,\&quot;csr_b64\&quot;:\&quot;<span class="variable">$&#123;CSR_B64&#125;</span>\&quot;&#125;&quot;</span> \</span><br><span class="line">  -o <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>-response.json&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取证书</span></span><br><span class="line">python3 -c <span class="string">&quot;import json; print(json.load(open(&#x27;<span class="variable">$&#123;CLIENT_NAME&#125;</span>-response.json&#x27;))[&#x27;certificate_pem&#x27;])&quot;</span> &gt; <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>.crt&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="组装-ovpn-配置文件"><a href="#组装-ovpn-配置文件" class="headerlink" title="组装 .ovpn 配置文件"></a>组装 .ovpn 配置文件</h3><p>拿到证书之后，还需要把它和 VPN 的连接参数、CA 证书、用户私钥组装成一份完整的 <code>.ovpn</code> 文件，才能导入客户端使用。</p>
+<p>首先需要一份”基础配置”，里面包含 endpoint 的连接参数和 CA 证书，但<strong>不含</strong>个人的客户端证书和私钥。这份基础配置可以从 AWS 控制台导出，也可以用 CLI：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">aws ec2 export-client-vpn-client-configuration \</span><br><span class="line">  --client-vpn-endpoint-id <span class="string">&quot;<span class="variable">$ENDPOINT_ID</span>&quot;</span> \</span><br><span class="line">  --output text | <span class="built_in">tr</span> -d <span class="string">&#x27;\r&#x27;</span> &gt; base.ovpn</span><br></pre></td></tr></table></figure>
+
+<p>我们把这份基础配置提交到了 Git 仓库里，同事直接下载就行，不需要有 AWS 导出权限。</p>
+<p>然后在 base.ovpn 上追加空闲断开策略和个人的证书、私钥：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> &gt;&gt; base.ovpn &lt;&lt;<span class="string">EOF</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">inactive 7200 128</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">&lt;cert&gt;</span></span><br><span class="line"><span class="string">$(cat &quot;$&#123;CLIENT_NAME&#125;.crt&quot;)</span></span><br><span class="line"><span class="string">&lt;/cert&gt;</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">&lt;key&gt;</span></span><br><span class="line"><span class="string">$(cat &quot;$&#123;CLIENT_NAME&#125;.key&quot;)</span></span><br><span class="line"><span class="string">&lt;/key&gt;</span></span><br><span class="line"><span class="string">EOF</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">mv</span> base.ovpn <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>-tooling-client-vpn.ovpn&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>inactive 7200 128</code> 是客户端侧的空闲断开——连续 2 小时几乎没有入站流量就自动断开。服务端另有最长会话 8 小时的限制，到点也会强制断开。</p>
+<p>组装完的 <code>.ovpn</code> 文件里应该包含三个关键块：<code>&lt;ca&gt;</code>（基础配置自带）、<code>&lt;cert&gt;</code>（刚签发的证书）、<code>&lt;key&gt;</code>（用户私钥）。可以简单验证一下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grep -E <span class="string">&#x27;^&lt;(ca|cert|key)&gt;&#x27;</span> <span class="string">&quot;<span class="variable">$&#123;CLIENT_NAME&#125;</span>-tooling-client-vpn.ovpn&quot;</span></span><br><span class="line"><span class="comment"># 应该看到 &lt;ca&gt; &lt;cert&gt; &lt;key&gt; 三行</span></span><br></pre></td></tr></table></figure>
+
+<p>最后导入 AWS VPN Client（macOS &#x2F; Windows &#x2F; Linux 都有），选择这个 <code>.ovpn</code> 文件，Connect 就行了。</p>
+<p><strong>注意：这个 <code>.ovpn</code> 文件含私钥，等同于密码。</strong> 不要提交 Git，不要发群聊，不要放到任何公开的地方。如果是管理员代签的场景（帮没有 Lambda 权限的同事签发），组装好 <code>.ovpn</code> 后通过安全渠道（比如私聊）发给本人。</p>
+<h3 id="员工离职怎么办"><a href="#员工离职怎么办" class="headerlink" title="员工离职怎么办"></a>员工离职怎么办</h3><p>禁用 SSO 账号<strong>不会</strong>断开已有的 VPN 连接。Client VPN 用证书认证，和 SSO 没有关系。离职必须吊销证书：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 按 CN 吊销</span></span><br><span class="line">curl <span class="string">&quot;<span class="variable">$FUNC_URL</span>&quot;</span> \</span><br><span class="line">  --aws-sigv4 <span class="string">&quot;aws:amz:<span class="variable">$&#123;AWS_REGION&#125;</span>:lambda&quot;</span> \</span><br><span class="line">  --user <span class="string">&quot;...&quot;</span> \</span><br><span class="line">  -H <span class="string">&quot;x-amz-security-token: ...&quot;</span> \</span><br><span class="line">  -H <span class="string">&quot;Content-Type: application/json&quot;</span> \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;action&quot;:&quot;revoke&quot;,&quot;cn&quot;:&quot;离职员工的CN&quot;&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 或按签发人 ARN 批量吊销（吊销此人签的所有证书）</span></span><br><span class="line">curl <span class="string">&quot;<span class="variable">$FUNC_URL</span>&quot;</span> \</span><br><span class="line">  ... \</span><br><span class="line">  -d <span class="string">&#x27;&#123;&quot;action&quot;:&quot;revoke&quot;,&quot;issued_by&quot;:&quot;离职员工的IAM ARN&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>吊销后 Lambda 自动生成新 CRL 并导入 endpoint，通常数分钟内生效。</p>
+<h2 id="签发人追踪"><a href="#签发人追踪" class="headerlink" title="签发人追踪"></a>签发人追踪</h2><p>这是做完基本方案之后追加的一个设计，源于一个很现实的问题：<strong>证书的 CN 是 CSR 里带过来的，用户随便写。你没有任何办法通过一张证书来反推”实际使用者是谁”。</strong></p>
+<p>Client VPN 的连接日志里能看到 CN，但 CN 写的是 <code>test</code> 还是 <code>zhangsan</code>，你不知道实际连接者是谁。离职的时候你想吊销他的证书，但你不确定他用的是哪一张——尤其是管理员代签的场景，好几个人的证书可能 CN 写的都很随意。</p>
+<p>想来想去，结论是：<strong>没法让证书的使用者对自己负责（CN 不可信），只能让签发者对他签的证书负责。</strong></p>
+<p>所以我需要记录”每张证书是谁签的”，而且这个”谁”必须是 AWS 验证过的身份，不能靠调用者自己上报。</p>
+<p>做法是把 Lambda 的入口换成 <strong>Function URL（<code>authorization_type = AWS_IAM</code>）</strong>。调用者必须用 SigV4 签名，Lambda 在 <code>event.requestContext.authorizer.iam.userArn</code> 里能拿到 AWS 验证过的调用者身份。这个值是 AWS 认证层提供的，调用者改不了。</p>
+<p>每次签发，Lambda 自动在 <code>issuance-log.jsonl</code> 里追加一条记录：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span><span class="attr">&quot;serial&quot;</span><span class="punctuation">:</span><span class="string">&quot;07&quot;</span><span class="punctuation">,</span><span class="attr">&quot;cn&quot;</span><span class="punctuation">:</span><span class="string">&quot;zhangsan&quot;</span><span class="punctuation">,</span><span class="attr">&quot;issued_by&quot;</span><span class="punctuation">:</span><span class="string">&quot;arn:aws:sts::123456789012:assumed-role/my-ops-role/zhangsan@example.com&quot;</span><span class="punctuation">,</span><span class="attr">&quot;timestamp&quot;</span><span class="punctuation">:</span><span class="string">&quot;2025-04-10T13:22:01Z&quot;</span><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>openssl 标准的 index.txt 只记录 CN、serial、状态这些，不记录签发人。签发人信息单独存在 issuance-log.jsonl 里，两个文件通过 serial 关联。</p>
+<p>这样在离职场景下，可以先用 <code>list</code> 接口按 <code>issued_by</code> 过滤出某人签过的所有证书，确认后一把 revoke 掉。</p>
+<h2 id="CRL：不续就全员断连"><a href="#CRL：不续就全员断连" class="headerlink" title="CRL：不续就全员断连"></a>CRL：不续就全员断连</h2><p>这是整个方案里最需要注意的地方。Client VPN 一旦 import 过 CRL，就会<strong>持续校验</strong> CRL 的有效期。CRL 过期不是”吊销功能失效”，而是<strong>所有连接都会被拒绝</strong>——无论证书本身是否有效。</p>
+<p>所以 CRL 的续期是刚需，不是可选项。</p>
+<p>我们用 EventBridge 每周触发一次 Lambda 的 <code>refresh-crl</code>，把 CRL 有效期续到当前时间 +90 天，然后重新 import 到 endpoint。Lambda 同时推一个 CloudWatch 自定义指标 <code>CRLDaysRemaining</code>，配了告警——剩余不到 14 天就报。Lambda 自身的执行失败也有另一个告警兜底。</p>
+<p>90 天有效期配合每周刷新，意味着即使 EventBridge 连续挂掉两个多月没人管，CRL 也不会过期。两层告警，容错空间足够。</p>
+<h2 id="Function-URL-权限的坑"><a href="#Function-URL-权限的坑" class="headerlink" title="Function URL 权限的坑"></a>Function URL 权限的坑</h2><p>这里踩了一个坑，记录一下。</p>
+<p>2025 年 10 月以后，AWS 要求调用 Lambda Function URL 同时具备 <code>lambda:InvokeFunctionUrl</code> <strong>和</strong> <code>lambda:InvokeFunction</code> 两个权限。只有其中一个会 403。</p>
+<p>我们同事用的是公司统一维护的开发者角色，这个角色有 <code>lambda:InvokeFunction</code> 但没有 <code>lambda:InvokeFunctionUrl</code>。角色策略由上级团队管，我不能也不该直接改。</p>
+<p>解法是在 Lambda 上加 resource-based policy，给特定角色补上 <code>lambda:InvokeFunctionUrl</code>。identity-based policy 提供 <code>InvokeFunction</code>，resource-based policy 提供 <code>InvokeFunctionUrl</code>，两边凑齐。</p>
+<p>这里要注意：<strong>不要用 <code>principal = &quot;*&quot;</code> 加 <code>source_account</code> 条件</strong>。这种写法在同账号下会绕过 identity-based policy 的访问控制，相当于对账号内所有人无差别授权。必须指定具体的角色 ARN。</p>
+<h2 id="迁移过程"><a href="#迁移过程" class="headerlink" title="迁移过程"></a>迁移过程</h2><p>从 ACM PCA 迁移到自建 CA，不是一步到位，而是分三个阶段做的：</p>
+<p><strong>准备阶段</strong>——生成新 CA、签发 server cert 导入 ACM、部署 Lambda。所有操作不影响现有 VPN。Terraform 里用 <code>coalesce()</code> 做开关——变量留 <code>null</code> 用旧 PCA 证书，填入新 ARN 用新证书。</p>
+<p><strong>切换阶段</strong>——先给所有人签发新证书并分发，然后写入 ARN、apply。验证通过后 import 初始 CRL、测试吊销、启用定时刷新。</p>
+<p><strong>清理阶段</strong>——从 Terraform state 移除旧 PCA 资源，从代码删除，最后删除 PCA 本身（7 天冷却期后永久销毁，$400&#x2F;月的计费即刻停止）。</p>
+<p>在清理阶段执行 PCA 删除之前，旧方案一直可以回滚——把 tfvars 里的 ARN 改回 <code>null</code>，apply 就行。PCA 删除是唯一不可逆的操作，所以放在最后，观察了两天稳定性才执行。</p>
+<p>迁移过程中踩了一个雷：自建 CA 签的 server cert 忘了加 Key Usage 扩展（<code>digitalSignature</code> + <code>keyEncipherment</code>），OpenVPN 报 <code>VERIFY KU ERROR</code>。PCA 时代这不是问题，因为 PCA 的证书模板自动带这些扩展。自建 CA 一切得自己来，openssl 签发的时候要显式指定：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">basicConstraints</span> = CA:<span class="literal">FALSE</span></span><br><span class="line"><span class="attr">keyUsage</span> = digitalSignature, keyEncipherment</span><br><span class="line"><span class="attr">extendedKeyUsage</span> = serverAuth</span><br></pre></td></tr></table></figure>
+
+<h2 id="S3-状态文件与版本管理"><a href="#S3-状态文件与版本管理" class="headerlink" title="S3 状态文件与版本管理"></a>S3 状态文件与版本管理</h2><p>CA 的状态文件都存在一个 S3 桶里：</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ca.crt</code></td>
+<td>Root CA 证书</td>
+</tr>
+<tr>
+<td><code>index.txt</code></td>
+<td>openssl 标准的证书注册表</td>
+</tr>
+<tr>
+<td><code>serial</code></td>
+<td>下一张证书的序列号</td>
+</tr>
+<tr>
+<td><code>crlnumber</code></td>
+<td>下一个 CRL 编号</td>
+</tr>
+<tr>
+<td><code>crl.pem</code></td>
+<td>当前 CRL</td>
+</tr>
+<tr>
+<td><code>issuance-log.jsonl</code></td>
+<td>签发审计日志（含调用者 ARN）</td>
+</tr>
+</tbody></table>
+<p>这些文件都是几 KB 级别的，但一旦损坏就没有托管服务帮你兜底了。Lambda 写入时已经用并发限制防冲突，但万一代码 bug 写了脏数据，需要有回退能力。</p>
+<p>S3 开了版本管理，旧版本保留 365 天。存储成本可以忽略不计，但出问题时能从历史版本恢复。365 天足够长——客户端证书有效期就是 365 天，任何在有效期内的证书信息都能在历史版本里找到。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p>整个方案从提出到完成大约三天。改动涉及 Lambda 代码、Terraform 模块、IAM 策略、README，量不小但每一步都有验证点和回滚路径。</p>
+<p>几个值得记住的教训：</p>
+<p>ACM PCA 对于小团队来说性价比极差。Client VPN 的证书管理需求本质上就是签发、吊销、续期，openssl 全能做。把 CA 私钥锁进 Secrets Manager、用 Lambda 包一层签发服务，就能保持”私钥不暴露”的安全模型，同时省掉 $400&#x2F;月。</p>
+<p>CRL 过期会全员断连，这个很多人不知道。一旦 import 过 CRL，Client VPN 就会持续校验有效期。定时续期不是可选项，是必须的。</p>
+<p>证书认证和 SSO 是两回事。禁了 SSO 不等于断了 VPN。离职必须吊销证书，而 CN 又是自己写的不可信——所以需要从签发侧做追踪，记录”谁签的”而不是”谁用的”。</p>
+<p><code>curl --aws-sigv4</code> 是个好东西。curl 7.75 以后自带 SigV4 签名支持，不用装 <code>awscurl</code> 之类的第三方工具。macOS Ventura 以后和 Ubuntu 22.04 以后自带的 curl 版本都够。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AWS/" rel="tag"># AWS</a>
+              <a href="/tags/Lambda/" rel="tag"># Lambda</a>
+              <a href="/tags/Terraform/" rel="tag"># Terraform</a>
+              <a href="/tags/Client-VPN/" rel="tag"># Client VPN</a>
+              <a href="/tags/openssl/" rel="tag"># openssl</a>
+              <a href="/tags/%E8%AF%81%E4%B9%A6%E7%AE%A1%E7%90%86/" rel="tag"># 证书管理</a>
+              <a href="/tags/Secrets-Manager/" rel="tag"># Secrets Manager</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/03/al2023-dnf-automatic-metadata-expire/index.html" rel="prev" title="每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire">
+                  <i class="fa fa-angle-left"></i> 每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

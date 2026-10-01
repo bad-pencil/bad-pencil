@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起前段时间升级了一下公司的 SonarQube，版本升到了 2026 年 7 月版。 这个 SonarQube 是通过 AWS 的公网 ALB 对外提供服务的。既然放在公网，虽然不是谁都能登录，但让它就这么裸奔着总觉得不太合适，于是我在 ALB 前面加了一层 AWS WAF。 WAF 里启用了几组 AWS Managed Rules，包括：  AWSManagedRulesCommonRuleS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="给 SonarQube 加 WAF 后，我给自己挖了个坑">
+<meta property="og:url" content="https://ming.theyan.gs/2025/01/%E7%BB%99SonarQube%E5%8A%A0WAF%E5%90%8E%E6%88%91%E7%BB%99%E8%87%AA%E5%B7%B1%E6%8C%96%E4%BA%86%E4%B8%AA%E5%9D%91/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起前段时间升级了一下公司的 SonarQube，版本升到了 2026 年 7 月版。 这个 SonarQube 是通过 AWS 的公网 ALB 对外提供服务的。既然放在公网，虽然不是谁都能登录，但让它就这么裸奔着总觉得不太合适，于是我在 ALB 前面加了一层 AWS WAF。 WAF 里启用了几组 AWS Managed Rules，包括：  AWSManagedRulesCommonRuleS">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-01-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-01T00:55:10.309Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="Terraform">
+<meta property="article:tag" content="ALB">
+<meta property="article:tag" content="SonarQube">
+<meta property="article:tag" content="AWS WAF">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/01/%E7%BB%99SonarQube%E5%8A%A0WAF%E5%90%8E%E6%88%91%E7%BB%99%E8%87%AA%E5%B7%B1%E6%8C%96%E4%BA%86%E4%B8%AA%E5%9D%91/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/01/%E7%BB%99SonarQube%E5%8A%A0WAF%E5%90%8E%E6%88%91%E7%BB%99%E8%87%AA%E5%B7%B1%E6%8C%96%E4%BA%86%E4%B8%AA%E5%9D%91/index.html","path":"2025/01/给SonarQube加WAF后我给自己挖了个坑/index.html","title":"给 SonarQube 加 WAF 后，我给自己挖了个坑"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>给 SonarQube 加 WAF 后，我给自己挖了个坑 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%80%E5%BC%80%E5%A7%8B%E6%B2%A1%E6%83%B3%E5%88%B0%E8%BF%99%E9%87%8C"><span class="nav-number">3.</span> <span class="nav-text">为什么一开始没想到这里</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95"><span class="nav-number">4.</span> <span class="nav-text">解决方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2048-%E5%92%8C-8192"><span class="nav-number">5.</span> <span class="nav-text">2048 和 8192</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">6.</span> <span class="nav-text">多说几句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">118</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">522</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/01/%E7%BB%99SonarQube%E5%8A%A0WAF%E5%90%8E%E6%88%91%E7%BB%99%E8%87%AA%E5%B7%B1%E6%8C%96%E4%BA%86%E4%B8%AA%E5%9D%91/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="给 SonarQube 加 WAF 后，我给自己挖了个坑 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          给 SonarQube 加 WAF 后，我给自己挖了个坑
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-01-12 00:00:00" itemprop="dateCreated datePublished" datetime="2025-01-12T00:00:00+08:00">2025-01-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-10-01 08:55:10" itemprop="dateModified" datetime="2026-10-01T08:55:10+08:00">2026-10-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E8%B8%A9%E5%9D%91/" itemprop="url" rel="index"><span itemprop="name">运维踩坑</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>前段时间升级了一下公司的 SonarQube，版本升到了 2026 年 7 月版。</p>
+<p>这个 SonarQube 是通过 AWS 的公网 ALB 对外提供服务的。既然放在公网，虽然不是谁都能登录，但让它就这么裸奔着总觉得不太合适，于是我在 ALB 前面加了一层 AWS WAF。</p>
+<p>WAF 里启用了几组 AWS Managed Rules，包括：</p>
+<ul>
+<li><code>AWSManagedRulesCommonRuleSet</code></li>
+<li><code>AWSManagedRulesKnownBadInputsRuleSet</code></li>
+<li><code>AWSManagedRulesSQLiRuleSet</code></li>
+<li><code>AWSManagedRulesAmazonIpReputationList</code></li>
+</ul>
+<p>另外还加了一个按 IP 限速的规则。</p>
+<p>SonarScanner 上传的数据比较大，所以当时还专门对 <code>SizeRestrictions_BODY</code>、<code>CrossSiteScripting_BODY</code> 和 <code>SQLi_BODY</code> 做了放行或者只计数处理。</p>
+<p>过了几天，我又给 SonarQube 加了一层 IP 白名单：只有办公室出口 IP 和 GitHub Actions 的公网 IP 才能访问。</p>
+<p>为了不影响同一个 ALB 后面将来可能挂的其他服务，这个白名单不是直接加在 ALB 的 Security Group 上，而是在 WAF 里根据 HTTP Host 匹配，只限制 SonarQube 的域名。</p>
+<p>看起来考虑得还挺周全。</p>
+<p>然后，坑就挖好了。</p>
+<span id="more"></span>
+
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>今天开发同事问我，最近 SonarQube 做过什么改动。</p>
+<p>我说主要有两个：</p>
+<ol>
+<li>SonarQube 升级到了 2026 年 7 月版；</li>
+<li>公网 ALB 前面加了 WAF，并且给 SonarQube 加了 IP 白名单。</li>
+</ol>
+<p>开发同事用 AI 查了一下，发现问题可能不在 SonarQube 升级本身，而是在刚加上的 WAF。</p>
+<p>AWS 的 <code>AWSManagedRulesCommonRuleSet</code> 里有一条规则：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SizeRestrictions_QUERYSTRING</span><br></pre></td></tr></table></figure>
+
+<p>这条规则会检查 URL 的 query string。只要 query string 超过 2048 字节，默认动作就是 <code>Block</code>。</p>
+<p>而 SonarQube 的 Web API 确实可能产生超过 2048 字节的 URL。SonarQube 官方文档在介绍反向代理配置时也专门提醒：</p>
+<blockquote>
+<p>You may need to increase the max URL length since SonarQube requests can have URLs longer than 2048.</p>
+</blockquote>
+<p>也就是说，这不是什么攻击，也不是什么奇怪的异常请求，只是 SonarQube 正常工作时可能产生的长 query string。</p>
+<p>但是 WAF 不知道这些。</p>
+<p>它只知道：超过 2048 字节，拦。</p>
+<h2 id="为什么一开始没想到这里"><a href="#为什么一开始没想到这里" class="headerlink" title="为什么一开始没想到这里"></a>为什么一开始没想到这里</h2><p>其实在创建 WAF 的时候，我已经考虑到了 SonarScanner 上传大文件的问题：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">rule_action_override &#123;</span><br><span class="line">  name = &quot;SizeRestrictions_BODY&quot;</span><br><span class="line"></span><br><span class="line">  action_to_use &#123;</span><br><span class="line">    allow &#123;&#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>也考虑到了二进制或 multipart 数据可能误触发 XSS 和 SQL Injection 检查。</p>
+<p>但是我只注意了 request body，没有注意 query string。</p>
+<p>而且 IP 白名单本身工作完全正常：办公室能访问，GitHub Actions 也能访问，不在白名单里的 IP 会被拒绝。</p>
+<p>这很容易让人以为 WAF 已经调好了。</p>
+<p>实际上，IP 白名单只是 WAF 里的其中一条规则。请求通过白名单以后，后面还有 AWS Managed Rules。白名单允许这个 IP 访问，并不代表后面的规则不会再把这个请求拦下来。</p>
+<p>所以这次真正误杀 SonarQube 的不是 IP 白名单，而是加 WAF 时一并启用的 <code>AWSManagedRulesCommonRuleSet</code>。</p>
+<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><p>AWS Managed Rules 里的 2048 字节阈值不能直接修改。</p>
+<p>最后采用的办法，是把 <code>SizeRestrictions_QUERYSTRING</code> 的动作覆盖成 <code>count</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">rule_action_override &#123;</span><br><span class="line">  name = &quot;SizeRestrictions_QUERYSTRING&quot;</span><br><span class="line"></span><br><span class="line">  action_to_use &#123;</span><br><span class="line">    count &#123;&#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样，超过 2048 字节的 query string 仍然会被 WAF 记录下来，也可以在 CloudWatch 指标和 WAF 日志里看到，但是不会再直接阻断请求。</p>
+<p>Terraform plan 的结果是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Plan: 0 to add, 1 to change, 0 to destroy.</span><br></pre></td></tr></table></figure>
+
+<p>只是原地更新 Web ACL，没有新建或者销毁资源。</p>
+<p>apply 完成后，SonarQube 的长 query string 请求不再被 WAF 拦截。</p>
+<h2 id="2048-和-8192"><a href="#2048-和-8192" class="headerlink" title="2048 和 8192"></a>2048 和 8192</h2><p>排查过程中还看到过“SonarQube 的 query string 最大可能达到 8192 字节”的说法。</p>
+<p>不过查了官方文档以后，至少目前没有找到 SonarQube 官方对 8192 字节这个上限的说明。</p>
+<p>AWS WAF 官方文档里明确写的是：</p>
+<ul>
+<li><code>SizeRestrictions_QUERYSTRING</code>：query string 超过 2048 字节时匹配；</li>
+<li><code>SizeRestrictions_BODY</code>：request body 超过 8192 字节时匹配。</li>
+</ul>
+<p>所以，8192 很可能是和 request body 的限制混在了一起。</p>
+<p>SonarQube 官方只明确提醒，它产生的 URL 可能超过 2048 字节，并建议根据实际情况提高反向代理允许的 URL 长度。官方给 IIS 的示例甚至把 <code>maxQueryString</code> 设置成了 32768。</p>
+<p>因此这次没有另外增加一个“超过 8192 字节才阻断”的自定义规则，而是直接把托管规则里的 <code>SizeRestrictions_QUERYSTRING</code> 改成 <code>count</code>。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p>这次问题有几个值得记下来的地方。</p>
+<p>第一，给现有应用前面加 WAF，不是把 AWS Managed Rules 全部打开就完事了。</p>
+<p>Managed Rules 提供的是一套通用基线，不可能知道每个应用的正常请求长什么样。像 SonarQube 这种有大 body、长 URL 和复杂 Web API 的应用，上 WAF 后一定要结合真实流量调整规则。</p>
+<p>第二，白名单和其他 WAF 规则是两回事。</p>
+<p>请求来自白名单 IP，只表示它通过了白名单这道检查。后面的大小限制、XSS、SQL Injection 和 IP Reputation 规则仍然可能继续处理并阻断它。</p>
+<p>第三，WAF 最好先用 <code>count</code> 观察一段时间，再逐步切换到 <code>block</code>。</p>
+<p>尤其是给已经运行了一段时间的应用补 WAF。如果直接把所有托管规则都设成阻断，表面上是安全性提高了，实际上很可能先把正常业务打死。</p>
+<p>最后，还有一个很现实的问题：一次同时做了 SonarQube 升级和 WAF 调整，出问题后第一反应很容易怀疑升级。</p>
+<p>结果软件版本没背锅，真正的原因是我自己刚加上的那层“安全防护”。</p>
+<p>安全规则最大的敌人，有时不是攻击者，而是正常业务。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/waf/latest/developerguide/aws-managed-rule-groups-baseline.html">AWS WAF Baseline managed rule groups</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.sonarsource.com/sonarqube-server/2026.2/server-installation/network-security/securing-behind-proxy">SonarQube Server: Reverse proxy and network security</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Terraform/" rel="tag"># Terraform</a>
+              <a href="/tags/ALB/" rel="tag"># ALB</a>
+              <a href="/tags/SonarQube/" rel="tag"># SonarQube</a>
+              <a href="/tags/AWS-WAF/" rel="tag"># AWS WAF</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2024/12/work_summary/index.html" rel="prev" title="我在 xxxxx 的工作总结">
+                  <i class="fa fa-angle-left"></i> 我在 xxxxx 的工作总结
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/02/preprod-windows-patch-0x80072f8f/index.html" rel="next" title="每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP&#x2F;80">
+                  每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP/80 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

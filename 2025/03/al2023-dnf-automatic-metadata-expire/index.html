@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起最近一直在啃 WIZ 扫出来的漏洞，修了有一两个月。今天打开一看：某两台 Amazon Linux 2023 的 EC2，操作系统软件包漏洞突然多了大几十个、上百个。 第一反应不是「又有新 CVE 发布了」，而是：你们不是开了每天自动更新吗？ 上去一查，更气。dnf-automatic-install.timer 天天在跑，journal 里全是 Success；再对比同环境另一台机器，那边包">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire">
+<meta property="og:url" content="https://ming.theyan.gs/2025/03/al2023-dnf-automatic-metadata-expire/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起最近一直在啃 WIZ 扫出来的漏洞，修了有一两个月。今天打开一看：某两台 Amazon Linux 2023 的 EC2，操作系统软件包漏洞突然多了大几十个、上百个。 第一反应不是「又有新 CVE 发布了」，而是：你们不是开了每天自动更新吗？ 上去一查，更气。dnf-automatic-install.timer 天天在跑，journal 里全是 Success；再对比同环境另一台机器，那边包">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-03-07T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-01T00:55:10.305Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="Amazon Linux 2023">
+<meta property="article:tag" content="dnf-automatic">
+<meta property="article:tag" content="安全补丁">
+<meta property="article:tag" content="WIZ">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/03/al2023-dnf-automatic-metadata-expire/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/03/al2023-dnf-automatic-metadata-expire/index.html","path":"2025/03/al2023-dnf-automatic-metadata-expire/index.html","title":"每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF%EF%BC%9A%E6%88%91%E4%BB%AC%E4%BB%A5%E4%B8%BA%E8%87%AA%E5%B7%B1%E5%81%9A%E5%AF%B9%E4%BA%86%E7%9A%84%E4%BA%8B"><span class="nav-number">2.</span> <span class="nav-text">背景：我们以为自己做对了的事</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%EF%BC%9A%E7%BB%BF%E7%81%AF%E4%B8%8B%E9%9D%A2%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">3.</span> <span class="nav-text">排查：绿灯下面是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E5%9B%A0%EF%BC%9A24-%E5%B0%8F%E6%97%B6%E7%9A%84%E5%AE%89%E8%A3%85%EF%BC%8C%E6%92%9E%E4%B8%8A-48-%E5%B0%8F%E6%97%B6%E7%9A%84%E7%B4%A2%E5%BC%95"><span class="nav-number">4.</span> <span class="nav-text">原因：24 小时的安装，撞上 48 小时的索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D%EF%BC%9A%E8%AE%A9%E8%BF%87%E6%9C%9F%E6%97%B6%E9%97%B4%E5%92%8C%E6%9B%B4%E6%96%B0%E5%91%A8%E6%9C%9F%E5%AF%B9%E9%BD%90"><span class="nav-number">5.</span> <span class="nav-text">修复：让过期时间和更新周期对齐</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">6.</span> <span class="nav-text">多说几句</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">118</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">522</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/03/al2023-dnf-automatic-metadata-expire/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-03-08 00:00:00" itemprop="dateCreated datePublished" datetime="2025-03-08T00:00:00+08:00">2025-03-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-10-01 08:55:10" itemprop="dateModified" datetime="2026-10-01T08:55:10+08:00">2026-10-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E8%B8%A9%E5%9D%91/" itemprop="url" rel="index"><span itemprop="name">运维踩坑</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>最近一直在啃 WIZ 扫出来的漏洞，修了有一两个月。今天打开一看：某两台 Amazon Linux 2023 的 EC2，操作系统软件包漏洞突然多了大几十个、上百个。</p>
+<p>第一反应不是「又有新 CVE 发布了」，而是：<strong>你们不是开了每天自动更新吗？</strong></p>
+<p>上去一查，更气。<code>dnf-automatic-install.timer</code> 天天在跑，journal 里全是 Success；再对比同环境另一台机器，那边包版本已经新一截了，这两台还停在旧的。不是 timer 挂了，不是没装 <code>dnf-automatic</code>，也不是没写 <code>releasever=latest</code>——配置「看起来全都对」，预期作用却等于零。</p>
+<p>气从何来？因为这不是偶发运维疏忽，而是 <strong>默认行为在逻辑上就不该和「每天更新」摆在一起</strong>。你以为自己买了份日更保险，其实保单条款里写着：索引最多可以旧两天。</p>
+<span id="more"></span>
+
+<h2 id="背景：我们以为自己做对了的事"><a href="#背景：我们以为自己做对了的事" class="headerlink" title="背景：我们以为自己做对了的事"></a>背景：我们以为自己做对了的事</h2><p>独立 Linux EC2（不是 ECS ASG 那套 Patch Manager）上，套路很常见：</p>
+<ol>
+<li><code>echo latest &gt; /etc/dnf/vars/releasever</code>，追 AL2023 的 rolling 快照</li>
+<li>装 <code>dnf-automatic</code>，<code>upgrade_type = security</code>，<code>apply_updates = yes</code></li>
+<li><code>systemctl enable --now dnf-automatic-install.timer</code>（大约每天 06:00 UTC 起跑，再加随机延迟）</li>
+</ol>
+<p>对照机一切正常：某天 automatic 日志里实打实 Upgrade 了二十多个包。出问题的两台：timer 同样 Success，事务却经常是空的。</p>
+<p>有人会猜：ARM 包发布慢？其中一台确实是 aarch64。查下来 <strong>不是主因</strong>——同日 aarch64 仓库里已经能看到新版本 security 包；真正卡住的是 <strong>本机还在用一份旧的主仓元数据</strong>。</p>
+<h2 id="排查：绿灯下面是什么"><a href="#排查：绿灯下面是什么" class="headerlink" title="排查：绿灯下面是什么"></a>排查：绿灯下面是什么</h2><p>几条关键证据（同一天、只读核对）：</p>
+<ul>
+<li>三台 <code>dnf-automatic-install.timer</code> 都是 <code>enabled</code> &#x2F; <code>active</code></li>
+<li>出问题的那台：<code>amazonlinux.solv</code> 的 mtime 停了十来天；本地缓存的 mirrorlist 仍指向旧的 repo <strong>GUID</strong></li>
+<li>同机 <code>curl</code> 官方 S3 mirror.list，已经返回 <strong>新的 GUID</strong></li>
+<li><code>dnf check-update -v</code> 明确写着：<code>repo: using cache for: amazonlinux</code>，元数据日期还是旧快照那天</li>
+<li>对照机：某次 automatic 运行时 solv &#x2F; mirrorlist <strong>一起更新</strong>，然后才有 Transaction</li>
+</ul>
+<p>结论很粗暴：</p>
+<blockquote>
+<p>自动更新在跑；它装的是「当前缓存索引里认为存在的 security 包」。<br>缓存钉在旧 GUID 上时，新包对它来说等于不存在。<br>timer 天天绿，洞照样堆。</p>
+</blockquote>
+<h2 id="原因：24-小时的安装，撞上-48-小时的索引"><a href="#原因：24-小时的安装，撞上-48-小时的索引" class="headerlink" title="原因：24 小时的安装，撞上 48 小时的索引"></a>原因：24 小时的安装，撞上 48 小时的索引</h2><p>Amazon Linux 2023 的 <code>releasever=latest</code> 不是「永远对着一个活的包目录扫」。大致是：</p>
+<ol>
+<li>去拉 <code>.../core/mirrors/latest/$basearch/mirror.list</code></li>
+<li>文件里给一个带 <strong>GUID</strong> 的快照 URL</li>
+<li>dnf 只从这个 GUID 目录取 repodata &#x2F; 包</li>
+</ol>
+<p>AWS 发新 composition 时，会改 mirror.list 指向新 GUID。旧 GUID 上的包集合基本就冻住了。</p>
+<p>再看 dnf 默认：<code>[amazonlinux]</code> 主仓往往 <strong>不写</strong> <code>metadata_expire</code>（source&#x2F;debug 反倒写了 <code>6h</code>），于是主仓吃到默认 <strong>48 小时</strong>。含义是：</p>
+<ul>
+<li>距上次成功拉元数据 <strong>不到 48h</strong>：不重拉 mirror.list，只用本地索引</li>
+<li><strong>满 48h</strong> 之后，下一次 dnf 操作才会去刷新</li>
+</ul>
+<p>于是笑话成型：</p>
+<table>
+<thead>
+<tr>
+<th>你配置的</th>
+<th>实际默认</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>每天跑一次安装</td>
+<td>主仓索引最长可旧 48 小时才肯换</td>
+</tr>
+</tbody></table>
+<p>数学上就能推出：在「索引未过期、GUID 未切换」的日子里，<strong>至少有一部分「每日更新」必然空转</strong>。对 AL2023 + <code>latest</code> 这种靠换 GUID 才出新包的模型，空转不是边角料，是主菜。</p>
+<p>对照机「及时」也不是因为它绕过了 48h，而是 <strong>某次过期重拉碰巧撞上了新 GUID</strong>；出问题的机器上次 check 还停在旧 GUID，随后又被新的 48h 窗口兜住。策略一样，运气不同——这种安全机制不配叫机制。</p>
+<p>再补一刀：系统自带的 <code>dnf-makecache.timer</code> 默认常常是 <strong>disabled</strong>；即便启用，服务跑的是 <code>dnf makecache --timer</code>——<strong>没过期照样不拉</strong>。指望靠它「每小时强制刷新」而不动 <code>metadata_expire</code>，是自我安慰。</p>
+<h2 id="修复：让过期时间和更新周期对齐"><a href="#修复：让过期时间和更新周期对齐" class="headerlink" title="修复：让过期时间和更新周期对齐"></a>修复：让过期时间和更新周期对齐</h2><p>原则就一句：</p>
+<blockquote>
+<p><strong>多久装一次，索引最多就允许多旧。</strong><br>不该用默认 48h 去伺候 24h 的 timer。</p>
+</blockquote>
+<p>改法很简单，在 <code>/etc/dnf/dnf.conf</code> 的 <code>[main]</code> 里加（推荐写这里，少被 <code>amazon-linux-repo-*</code> 覆盖 repo 文件时冲掉）：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[main]</span></span><br><span class="line"><span class="comment"># ...原有配置...</span></span><br><span class="line"><span class="attr">metadata_expire</span>=<span class="number">1</span>h</span><br></pre></td></tr></table></figure>
+
+<p>注意：写 <code>metadata_expire=1</code> 是 <strong>1 秒</strong>，不是 1 小时。要 1 小时请写 <code>1h</code> 或 <code>3600</code>。</p>
+<p>想「每次 dnf 都强制重拉」可以用 <code>metadata_expire=0</code>，语义最干净，但交互式 <code>dnf</code> 也会变慢、多吃带宽；我最后还是选了 <code>1h</code>，对日更足够跟手。</p>
+<p>现网若已经落后一截，配置改完仍建议手工逼一次：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dnf clean expire-cache</span><br><span class="line">dnf makecache</span><br><span class="line">dnf upgrade --security -y --releasever=latest</span><br></pre></td></tr></table></figure>
+
+<p>（与 automatic 的 security 策略一致；若要整系统追 latest，再用全量 <code>dnf upgrade</code>。）</p>
+<p>user_data &#x2F; 镜像构建里把同一行写进去，新机才不会再踩默认 48h。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p>WIZ 一夜暴涨几十上百个 OS 包洞，不一定是扫描器抽风，也可能是：<strong>你以为在修的那套「每天自动更新」，从来没按你想象的频率看见过新索引。</strong></p>
+<p>配置检查清单如果只停在「timer enabled、automatic.conf 写了 apply_updates」，会漏掉真正要命的那一项：<code>metadata_expire</code>。绿灯 journal 也不能当结案——要看有没有 Transaction，要看 solv &#x2F; mirrorlist 的 GUID 是否还在追 <code>latest</code>。</p>
+<p>这篇文章没有高深架构，就是把一肚子火写成烂笔头：默认值可以省流量，但不能 silently 把「每日安全更新」变成「隔天碰巧才换目录的空转」。下次再在 AL2023 上开 <code>dnf-automatic</code> + <code>releasever=latest</code>，先把 <code>metadata_expire</code> 写进 <code>dnf.conf</code>，别再跟默认 48h 讲感情。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Amazon-Linux-2023/" rel="tag"># Amazon Linux 2023</a>
+              <a href="/tags/dnf-automatic/" rel="tag"># dnf-automatic</a>
+              <a href="/tags/%E5%AE%89%E5%85%A8%E8%A1%A5%E4%B8%81/" rel="tag"># 安全补丁</a>
+              <a href="/tags/WIZ/" rel="tag"># WIZ</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/02/preprod-windows-patch-0x80072f8f/index.html" rel="prev" title="每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP&#x2F;80">
+                  <i class="fa fa-angle-left"></i> 每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP/80
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/04/client-vpn-self-managed-ca-replace-acm-pca/index.html" rel="next" title="AWS Client VPN：自建 CA + Lambda 签发的完整方案">
+                  AWS Client VPN：自建 CA + Lambda 签发的完整方案 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

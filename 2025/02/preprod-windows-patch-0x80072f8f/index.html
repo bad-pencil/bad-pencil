@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起preprod 里有个维护窗口：nusa-preprod-windows-patch，每天凌晨 03:17（Asia&#x2F;Singapore）跑 AWS-RunPatchBaseline，目标是两台带 PatchGroup&#x3D;preprod-windows 的 PowerBI Gateway。 某天随手翻了一下执行历史，发现一件不太妙的事：  从 6 月 25 号到 7 月 24 号，最近">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP&#x2F;80">
+<meta property="og:url" content="https://ming.theyan.gs/2025/02/preprod-windows-patch-0x80072f8f/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起preprod 里有个维护窗口：nusa-preprod-windows-patch，每天凌晨 03:17（Asia&#x2F;Singapore）跑 AWS-RunPatchBaseline，目标是两台带 PatchGroup&#x3D;preprod-windows 的 PowerBI Gateway。 某天随手翻了一下执行历史，发现一件不太妙的事：  从 6 月 25 号到 7 月 24 号，最近">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-02-17T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-01T00:55:10.305Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="AWS SSM">
+<meta property="article:tag" content="Patch Manager">
+<meta property="article:tag" content="Windows Update">
+<meta property="article:tag" content="Security Group">
+<meta property="article:tag" content="PowerBI Gateway">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/02/preprod-windows-patch-0x80072f8f/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/02/preprod-windows-patch-0x80072f8f/index.html","path":"2025/02/preprod-windows-patch-0x80072f8f/index.html","title":"每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP/80"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP/80 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%B0%E8%B1%A1"><span class="nav-number">2.</span> <span class="nav-text">现象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E7%BA%BF%E5%AF%B9%E4%B8%8A%E4%BA%86%EF%BC%8C%E4%BD%86%E4%B8%8D%E6%98%AF%E4%BD%A0%E6%83%B3%E7%9A%84%E9%82%A3%E4%B8%AA%E6%95%85%E4%BA%8B"><span class="nav-number">3.</span> <span class="nav-text">时间线对上了，但不是你想的那个故事</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8A%E6%9C%BA%E8%AF%8A%E6%96%AD%EF%BC%9A%E6%97%B6%E9%92%9F%E6%98%AF%E6%97%A0%E8%BE%9C%E7%9A%84%EF%BC%8C80-%E7%AB%AF%E5%8F%A3%E4%B8%8D%E6%98%AF"><span class="nav-number">4.</span> <span class="nav-text">上机诊断：时钟是无辜的，80 端口不是</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%94%99%E8%AF%AF%E7%A0%81%E4%BC%9A%E9%AA%97%E4%BA%BA"><span class="nav-number">5.</span> <span class="nav-text">为什么错误码会骗人</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D"><span class="nav-number">6.</span> <span class="nav-text">修复</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E7%82%B9%E6%84%9F%E6%83%B3"><span class="nav-number">7.</span> <span class="nav-text">一点感想</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">118</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">522</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/02/preprod-windows-patch-0x80072f8f/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP&#x2F;80 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          每天都在打补丁，每天都在失败：Windows Update 与那条被收掉的 HTTP/80
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-02-18 00:00:00" itemprop="dateCreated datePublished" datetime="2025-02-18T00:00:00+08:00">2025-02-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-10-01 08:55:10" itemprop="dateModified" datetime="2026-10-01T08:55:10+08:00">2026-10-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%BF%90%E7%BB%B4%E8%B8%A9%E5%9D%91/" itemprop="url" rel="index"><span itemprop="name">运维踩坑</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>preprod 里有个维护窗口：<code>nusa-preprod-windows-patch</code>，每天凌晨 03:17（Asia&#x2F;Singapore）跑 <code>AWS-RunPatchBaseline</code>，目标是两台带 <code>PatchGroup=preprod-windows</code> 的 PowerBI Gateway。</p>
+<p>某天随手翻了一下执行历史，发现一件不太妙的事：</p>
+<blockquote>
+<p>从 6 月 25 号到 7 月 24 号，最近三十来次执行，<strong>全部 Failed</strong>。</p>
+</blockquote>
+<p>不是偶发超时，不是某一台掉线，是窗口级天天红。SSM Agent 在线，机器也跑着，任务确实打上去了——然后挂在 Windows 补丁搜索这一步。</p>
+<h2 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h2><p>错误信息不长，但很「经典」：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">An error occurred when attempting to search Windows Update.</span><br><span class="line">Exception from HRESULT: 0x80072F8F</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<p>微软文档对 <code>0x80072F8F</code> 的第一反应通常是：</p>
+<ol>
+<li>系统时间不准，SSL 证书日期校验失败；</li>
+<li>或者证书链不被信任（常见于自家 WSUS &#x2F; 自签证书）。</li>
+</ol>
+<p>第一眼很容易往「时钟漂了」上想。毕竟这两台在私有子网，出网靠 NAT，SG 出站又收得很紧——万一 NTP 不通，时间漂一个月，证书校验挂掉，说得通。</p>
+<p>于是先查时间线，再上机验证。</p>
+<h2 id="时间线对上了，但不是你想的那个故事"><a href="#时间线对上了，但不是你想的那个故事" class="headerlink" title="时间线对上了，但不是你想的那个故事"></a>时间线对上了，但不是你想的那个故事</h2><p>先把 Git 和维护窗口摆在一起看：</p>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>发生了什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>6&#x2F;23 03:17</strong></td>
+<td>最后一次补丁成功（当时还只有 gateway-1）</td>
+</tr>
+<tr>
+<td><strong>6&#x2F;23 晚上</strong></td>
+<td>安全收紧：PowerBI SG 的 HTTP&#x2F;80 从 <code>0.0.0.0/0</code> 收到 <code>169.254.0.0/16</code></td>
+</tr>
+<tr>
+<td><strong>6&#x2F;25 03:17</strong></td>
+<td>起，维护窗口开始天天 Failed</td>
+</tr>
+<tr>
+<td><strong>6&#x2F;25 白天</strong></td>
+<td>又补了一刀：link-local 放开全协议，修好到 Amazon Time Sync 的 UDP&#x2F;123；<strong>但公网 HTTP&#x2F;80 没有恢复</strong></td>
+</tr>
+</tbody></table>
+<p>成功补丁停在「收紧 HTTP」之前；失败从收紧之后的第一个维护窗口开始。相关性高得有点过分。</p>
+<p>再看一眼当前 SG 实际放行什么：</p>
+<ul>
+<li>VPC 内网：全通</li>
+<li>互联网：<strong>只有 TCP 443</strong></li>
+<li>link-local <code>169.254.0.0/16</code>：全通（含 NTP）</li>
+</ul>
+<p>而同仓库里 <strong>dev &#x2F; qa</strong> 的 PowerBI Gateway SG，仍然保留着 <code>0.0.0.0/0:80</code>。preprod 成了特例。</p>
+<h2 id="上机诊断：时钟是无辜的，80-端口不是"><a href="#上机诊断：时钟是无辜的，80-端口不是" class="headerlink" title="上机诊断：时钟是无辜的，80 端口不是"></a>上机诊断：时钟是无辜的，80 端口不是</h2><p>在两台机上跑了只读探测（时间、NTP、443、80、几个 Microsoft URL）。结果两边几乎一字不差：</p>
+<p><strong>时间正常。</strong></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">DateTime: 2026-07-24T04:42:42Z</span><br><span class="line">NTP Source: 169.254.169.123</span><br><span class="line">Last Successful Sync: 几分钟前</span><br></pre></td></tr></table></figure>
+
+<p>Amazon Time Sync 在干活，Stratum 正常。所以「证书日期无效」这条线，至少对<strong>现在</strong>不成立。</p>
+<p><strong>443 也正常。</strong></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">TCP 443 -&gt; sls.update.microsoft.com   : True</span><br><span class="line">HTTPS   -&gt; www.microsoft.com          : 200</span><br><span class="line">HTTPS   -&gt; sls.update.microsoft.com   : 404   # 裸路径 404 没关系，说明 TLS 握手成功了</span><br></pre></td></tr></table></figure>
+
+<p><strong>80 全灭。</strong></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">TCP 80  -&gt; download.windowsupdate.com : False</span><br><span class="line">HTTP    -&gt; windowsupdate.microsoft.com: timeout</span><br></pre></td></tr></table></figure>
+
+<p>Windows Update 官方要访问的那一串地址里，至今仍有大量 <code>http://...</code> 端点。你只放 443，等于让 WU Agent 去跑一场缺了半条腿的搜索。</p>
+<p>于是 Patch Manager 的故事就变成了：</p>
+<ol>
+<li>维护窗口准点触发；</li>
+<li><code>AWS-RunPatchBaseline</code> 打到两台 Online 的 Windows；</li>
+<li><code>PatchWindows</code> 调 <code>IUpdateSearcher.Search</code>；</li>
+<li>搜索阶段触达需要 HTTP 的更新端点；</li>
+<li>被 SG 丢掉；</li>
+<li>表层报成 <code>0x80072F8F</code>；</li>
+<li><code>max_errors = 1</code>，整窗 Failed。</li>
+</ol>
+<p>调度没问题，NAT 没问题，Agent 没问题，时间也没问题。<strong>少的就是那条 TCP&#x2F;80。</strong></p>
+<h2 id="为什么错误码会骗人"><a href="#为什么错误码会骗人" class="headerlink" title="为什么错误码会骗人"></a>为什么错误码会骗人</h2><p><code>0x80072F8F</code> 在微软文案里被写成 SSL &#x2F; 时钟问题，并不等于现场永远是时钟问题。</p>
+<p>这次诊断里，HTTPS 到 <code>sls.update.microsoft.com</code> 已经能完成 TLS；真正稳定复现的，是 HTTP&#x2F;80 被拒。结合 6&#x2F;23 那次「只留 443、收掉公网 80」的变更，根因应落在出网上，而不是再去重装一堆根证书、或者怀疑系统日期跳到了 1970。</p>
+<p>另外，6&#x2F;23 到 6&#x2F;25 之间，NTP（UDP&#x2F;123 到 link-local）确实也曾一度不通——那几天如果刚好撞上时钟偏差，错误码看起来会更「像教科书」。但 6&#x2F;25 修完 Time Sync 之后，失败还持续了整整一个月。说明<strong>真正让它日复一日挂着的，不是时钟，是 HTTP。</strong></p>
+<h2 id="修复"><a href="#修复" class="headerlink" title="修复"></a>修复</h2><p>很土，但有效：把 HTTP&#x2F;80 加回去，跟 dev &#x2F; qa 对齐，并在注释里写清楚为什么不能再「顺手」收掉。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"># Windows Update still requires HTTP (e.g. download.windowsupdate.com). Without this,</span><br><span class="line"># AWS-RunPatchBaseline fails at Search with HRESULT 0x80072F8F.</span><br><span class="line">resource &quot;aws_vpc_security_group_egress_rule&quot; &quot;preprod_powerbi_gw_http&quot; &#123;</span><br><span class="line">  security_group_id = aws_security_group.preprod_powerbi_gateway.id</span><br><span class="line">  description       = &quot;Allow HTTP to internet (Windows Update)&quot;</span><br><span class="line">  ip_protocol       = &quot;tcp&quot;</span><br><span class="line">  from_port         = 80</span><br><span class="line">  to_port           = 80</span><br><span class="line">  cidr_ipv4         = &quot;0.0.0.0/0&quot;</span><br><span class="line"></span><br><span class="line">  tags = &#123;</span><br><span class="line">    Name        = &quot;preprod-powerbi-gateway-egress-http&quot;</span><br><span class="line">    Environment = var.env_name</span><br><span class="line">    ManagedBy   = &quot;terraform&quot;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>原则就一句：</p>
+<blockquote>
+<p>安全收紧可以，但别把业务依赖的协议通道当成「多余的 80」一起砍。<br>Windows Update 不是只走 HTTPS 的现代 SPA。</p>
+</blockquote>
+<p>Apply 之后，建议手动跑一次 Scan &#x2F; Install 验证，别等第二天凌晨再看红绿。</p>
+<h2 id="一点感想"><a href="#一点感想" class="headerlink" title="一点感想"></a>一点感想</h2><p>这事有个很典型的运维味道：</p>
+<ul>
+<li>监控面上，维护窗口「有在跑」；</li>
+<li>错误码面上，像是「证书 &#x2F; 时间」；</li>
+<li>Git 历史上，是一次「看起来更安全」的 egress 收紧；</li>
+<li>实例面上，443 绿灯会让人误以为「出网没问题」。</li>
+</ul>
+<p>把这四层叠在一起，才能看到真相：<br><strong>出网不是「有没有网」，而是「缺了哪一种协议、到哪一类域名」。</strong></p>
+<p>下次再看到 Patch Manager 天天 Failed、错误又是 <code>0x80072F8F</code>，我会先做三件事：</p>
+<ol>
+<li>看最近有没有动过 Windows 实例的 SG egress；</li>
+<li>看 HTTP&#x2F;80 和 HTTPS&#x2F;443 是否都通到 Microsoft Update 域名；</li>
+<li>再用 <code>w32tm</code> 确认时间——而不是一上来就只信错误码的字面意思。</li>
+</ol>
+<p>坑不深，但藏在「我们为了安全做对了的那次变更」里。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AWS-SSM/" rel="tag"># AWS SSM</a>
+              <a href="/tags/Patch-Manager/" rel="tag"># Patch Manager</a>
+              <a href="/tags/Windows-Update/" rel="tag"># Windows Update</a>
+              <a href="/tags/Security-Group/" rel="tag"># Security Group</a>
+              <a href="/tags/PowerBI-Gateway/" rel="tag"># PowerBI Gateway</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/01/%E7%BB%99SonarQube%E5%8A%A0WAF%E5%90%8E%E6%88%91%E7%BB%99%E8%87%AA%E5%B7%B1%E6%8C%96%E4%BA%86%E4%B8%AA%E5%9D%91/index.html" rel="prev" title="给 SonarQube 加 WAF 后，我给自己挖了个坑">
+                  <i class="fa fa-angle-left"></i> 给 SonarQube 加 WAF 后，我给自己挖了个坑
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/03/al2023-dnf-automatic-metadata-expire/index.html" rel="next" title="每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire">
+                  每天自动更新是个笑话：AL2023、dnf-automatic 与 metadata_expire <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
