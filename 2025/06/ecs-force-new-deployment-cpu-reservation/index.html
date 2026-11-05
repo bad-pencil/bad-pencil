@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起我们 prod 的 ECS 集群是 EC2 启动类型，四台节点，跑着十几个 Java 微服务。 某天发现有两个 task 一直起不来，原因是四台机器的 CPU 都被预留满了。为此提了一个 PR，把 prod 所有服务 task definition 里容器的 cpu 减半，已经合进了 DevOps 仓库的 main。 问题是，按我们的流程，task definition 的改动要走 CD 才能">
+<meta property="og:type" content="article">
+<meta property="og:title" content="force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后">
+<meta property="og:url" content="https://ming.theyan.gs/2025/06/ecs-force-new-deployment-cpu-reservation/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起我们 prod 的 ECS 集群是 EC2 启动类型，四台节点，跑着十几个 Java 微服务。 某天发现有两个 task 一直起不来，原因是四台机器的 CPU 都被预留满了。为此提了一个 PR，把 prod 所有服务 task definition 里容器的 cpu 减半，已经合进了 DevOps 仓库的 main。 问题是，按我们的流程，task definition 的改动要走 CD 才能">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-06-18T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-05T13:01:12.307Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="AWS">
+<meta property="article:tag" content="ECS">
+<meta property="article:tag" content="Task Definition">
+<meta property="article:tag" content="AWS CLI">
+<meta property="article:tag" content="CI&#x2F;CD">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/06/ecs-force-new-deployment-cpu-reservation/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/06/ecs-force-new-deployment-cpu-reservation/index.html","path":"2025/06/ecs-force-new-deployment-cpu-reservation/index.html","title":"force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E7%9C%8B%E7%8E%B0%E5%9C%BA"><span class="nav-number">2.</span> <span class="nav-text">先看现场</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E4%B8%AA%E8%AF%AF%E5%8C%BA%EF%BC%9Aforce-new-deployment-%E5%8F%AA%E4%BC%9A%E6%8C%89%E6%97%A7%E9%85%8D%E7%BD%AE%E5%86%8D%E6%9D%A5%E4%B8%80%E9%81%8D"><span class="nav-number">3.</span> <span class="nav-text">第一个误区：force-new-deployment 只会按旧配置再来一遍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E4%B8%AA%E8%AF%AF%E5%8C%BA%EF%BC%9A%E6%BB%9A%E5%8A%A8%E9%83%A8%E7%BD%B2%E6%9C%AC%E8%BA%AB%E4%B9%9F%E8%A6%81%E7%A9%BA%E9%97%B4"><span class="nav-number">4.</span> <span class="nav-text">第二个误区：滚动部署本身也要空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%AC%E6%8A%98%EF%BC%9A%E9%97%AE%E9%A2%98%E8%87%AA%E5%B7%B1%E6%9D%BE%E5%BC%80%E4%BA%86"><span class="nav-number">5.</span> <span class="nav-text">转折：问题自己松开了</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%A9%E4%B8%8B-15-%E4%B8%AA%E6%9C%8D%E5%8A%A1%EF%BC%9A%E4%B8%80%E4%B8%AA%E4%B8%B2%E8%A1%8C%E8%84%9A%E6%9C%AC"><span class="nav-number">6.</span> <span class="nav-text">剩下 15 个服务：一个串行脚本</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%B6%E5%B0%BE"><span class="nav-number">7.</span> <span class="nav-text">收尾</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">8.</span> <span class="nav-text">多说几句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">123</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">537</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/06/ecs-force-new-deployment-cpu-reservation/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-06-19 00:00:00" itemprop="dateCreated datePublished" datetime="2025-06-19T00:00:00+08:00">2025-06-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-11-05 21:01:12" itemprop="dateModified" datetime="2026-11-05T21:01:12+08:00">2026-11-05</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>我们 prod 的 ECS 集群是 EC2 启动类型，四台节点，跑着十几个 Java 微服务。</p>
+<p>某天发现有两个 task 一直起不来，原因是四台机器的 CPU 都被预留满了。为此提了一个 PR，把 prod 所有服务 task definition 里容器的 <code>cpu</code> 减半，已经合进了 DevOps 仓库的 main。</p>
+<p>问题是，按我们的流程，task definition 的改动要走 CD 才能生效。而 CD 是从 dev 开始，经过 qa、preprod，最后才到 prod。这次又涉及所有服务，一个个从 dev 推到 prod，太慢了。</p>
+<p>于是我的第一反应是：能不能直接用命令行，对 prod 的服务来一次 <code>force-new-deployment</code>？</p>
+<p>答案是：命令行可以，但 <code>force-new-deployment</code> 不行。</p>
+<span id="more"></span>
+
+<h2 id="先看现场"><a href="#先看现场" class="headerlink" title="先看现场"></a>先看现场</h2><p>动手之前，先只读地看了一下集群的状态。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ecs describe-container-instances \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --cluster &lt;cluster&gt; \</span><br><span class="line">  --container-instances &lt;instance-ids&gt; \</span><br><span class="line">  --query <span class="string">&#x27;containerInstances[].&#123;</span></span><br><span class="line"><span class="string">    ec2:ec2InstanceId,</span></span><br><span class="line"><span class="string">    az:attributes[?name==`ecs.availability-zone`].value|[0],</span></span><br><span class="line"><span class="string">    cpuReg:registeredResources[?name==`CPU`].integerValue|[0],</span></span><br><span class="line"><span class="string">    cpuRem:remainingResources[?name==`CPU`].integerValue|[0]</span></span><br><span class="line"><span class="string">  &#125;&#x27;</span> \</span><br><span class="line">  --output table</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<ul>
+<li>四台节点注册的 CPU 都是 4096，剩余都是 0。内存还有余量。</li>
+<li>卡在 <code>PROVISIONING</code> 的两个 task，都是 Availability Zone rebalancing 发起的：<code>gateway-service</code>（CPU 512）和 <code>domain-report-service</code>（CPU 256）。这两个服务各有 2 个 task 在跑，但都挤在 <code>1b</code>，rebalancing 想往 <code>1a</code> 补一个，补不进去。</li>
+<li>线上所有服务的 CPU 还是减半之前的值。其中最大的是 <code>job-portfolio-service</code>，每个 task 2048，<code>1a</code> 和 <code>1b</code> 各一个。</li>
+<li>所有服务的部署策略都是 <code>minimumHealthyPercent=50</code>、<code>maximumPercent=200</code>，开了 circuit breaker。</li>
+</ul>
+<h2 id="第一个误区：force-new-deployment-只会按旧配置再来一遍"><a href="#第一个误区：force-new-deployment-只会按旧配置再来一遍" class="headerlink" title="第一个误区：force-new-deployment 只会按旧配置再来一遍"></a>第一个误区：force-new-deployment 只会按旧配置再来一遍</h2><p>ECS service 指向的是某一个具体的 task definition revision，比如 <code>&lt;family&gt;:8</code>。仓库里的 JSON 文件，ECS 根本不知道它的存在。</p>
+<p>我们的 CD 做的事情是：</p>
+<ol>
+<li>用仓库里的 JSON 渲染出新的 task definition（填进镜像地址等）；</li>
+<li><code>register-task-definition</code>，得到一个新 revision；</li>
+<li><code>update-service</code>，把服务指向这个新 revision。</li>
+</ol>
+<p>而 <code>update-service --force-new-deployment</code> 的作用，只是让服务用<strong>当前</strong>的 task definition 重新拉起一批 task。它不会去读仓库，也不会产生新 revision。对这次的场景来说，它只会按旧的 CPU 值把 task 再起一遍，什么问题都解决不了。</p>
+<p>所以命令行要做的，其实是手工把 CD 的第 2、3 步走一遍。</p>
+<p>这里还有一个细节：不能直接拿仓库里的 JSON 去注册。我们仓库里的 task definition，镜像地址是 <code>&#123;&#123;IMAGE_URI&#125;&#125;</code> 这样的占位符，由 CD 在部署时填入。直接注册的话，镜像就错了。</p>
+<p>正确的做法是以<strong>线上正在跑的 revision</strong> 为底，只改 <code>cpu</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ecs describe-task-definition \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --task-definition &lt;family&gt;:8 \</span><br><span class="line">  --query taskDefinition \</span><br><span class="line">| jq --arg name <span class="string">&quot;&lt;container-name&gt;&quot;</span> --argjson cpu 1024 <span class="string">&#x27;</span></span><br><span class="line"><span class="string">    del(.taskDefinitionArn, .revision, .status, .requiresAttributes,</span></span><br><span class="line"><span class="string">        .compatibilities, .registeredAt, .registeredBy)</span></span><br><span class="line"><span class="string">    | .containerDefinitions |= map(if .name == $name then .cpu = $cpu else . end)</span></span><br><span class="line"><span class="string">  &#x27;</span> &gt; /tmp/td.json</span><br><span class="line"></span><br><span class="line">aws --no-cli-pager ecs register-task-definition \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --cli-input-json file:///tmp/td.json</span><br></pre></td></tr></table></figure>
+
+<p><code>describe-task-definition</code> 返回的内容里，有几个只读字段（<code>taskDefinitionArn</code>、<code>revision</code>、<code>status</code>、<code>registeredAt</code> 等）不能原样传回 <code>register-task-definition</code>，要先用 jq 删掉。这样注册出来的新 revision，镜像、环境变量、角色都和线上一致，只有 CPU 变了。</p>
+<h2 id="第二个误区：滚动部署本身也要空间"><a href="#第二个误区：滚动部署本身也要空间" class="headerlink" title="第二个误区：滚动部署本身也要空间"></a>第二个误区：滚动部署本身也要空间</h2><p>新 revision 有了，下一步是 <code>update-service</code> 把服务切过去。</p>
+<p>但这里又有一个问题：部署策略是 200&#x2F;50，意思是 ECS 会先多起一份新 task，等它健康了再停旧的。可现在四台机器剩余 CPU 全是 0，新 task 一样放不进去。放不进去的结果，要么一直卡着，要么触发 circuit breaker 回滚。</p>
+<p>节点资源打满的时候，滚动部署本身就是需要额外空间的。</p>
+<p>我原本的打算是临时把策略改成 <code>maximumPercent=100</code>、<code>minimumHealthyPercent=50</code>。对于 desired 为 2 的服务，这意味着先停一个旧 task，再起一个新 task，不需要额外的 CPU。滚完再改回 200&#x2F;50。</p>
+<p>顺序上，先滚 <code>job-portfolio-service</code>：它从 2048 降到 1024，停掉 <code>1a</code> 上那一份，就能腾出足够的 CPU，让那两个卡住的 rebalancing task 放进去。</p>
+<p>结果 <code>update-service</code> 直接被拒了：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">An error occurred (InvalidParameterException) when calling the UpdateService operation:</span><br><span class="line">The service couldn&#x27;t be updated because Availability Zone Rebalancing does not support</span><br><span class="line">maximumPercent &lt;= 100 % as deployment configuration. Update deployment configuration and try again.</span><br></pre></td></tr></table></figure>
+
+<p>开了 Availability Zone rebalancing 的服务，不允许 <code>maximumPercent</code> 小于或等于 100。整个请求被拒绝，服务没有任何变化，只是新 revision 已经注册好了，还没挂上去。</p>
+<p>要绕过去，就得先关掉 rebalancing，再改成 100&#x2F;50 切 revision：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ecs update-service \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --cluster &lt;cluster&gt; --service job-portfolio-service \</span><br><span class="line">  --availability-zone-rebalancing DISABLED</span><br><span class="line"></span><br><span class="line">aws --no-cli-pager ecs update-service \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --cluster &lt;cluster&gt; --service job-portfolio-service \</span><br><span class="line">  --task-definition &lt;family&gt;:9 \</span><br><span class="line">  --deployment-configuration maximumPercent=100,minimumHealthyPercent=50</span><br></pre></td></tr></table></figure>
+
+<p>等稳定之后再恢复。注意恢复的时候，部署策略和 rebalancing 要在<strong>同一次</strong>调用里改回去。如果先打开 rebalancing，此时 <code>maximumPercent</code> 还是 100，就会再撞一次上面那个错：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ecs update-service \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --cluster &lt;cluster&gt; --service job-portfolio-service \</span><br><span class="line">  --deployment-configuration maximumPercent=200,minimumHealthyPercent=50 \</span><br><span class="line">  --availability-zone-rebalancing ENABLED</span><br></pre></td></tr></table></figure>
+
+<h2 id="转折：问题自己松开了"><a href="#转折：问题自己松开了" class="headerlink" title="转折：问题自己松开了"></a>转折：问题自己松开了</h2><p>不过，这套绕法最后没用上。</p>
+<p>在准备给另外两个服务关 rebalancing 之前，我感觉好像已经没有 pending 的 task 了，于是又看了一眼现场。现场已经变了：</p>
+<ul>
+<li>那两个卡在 <code>PROVISIONING</code> 的 task 已经停掉了，原因是 <code>TaskFailedToStart: RESOURCE:CPU</code>；</li>
+<li><code>job-portfolio-service</code> 已经切到了新 revision，部署完成，rebalancing 还是开着的，策略还是 200&#x2F;50；</li>
+<li>四台机器的剩余 CPU 变成了 256、0、768、1024，加起来正好 2048，就是 <code>job-portfolio-service</code> 两个 task 各从 2048 降到 1024 腾出来的；</li>
+<li><code>gateway-service</code> 和 <code>domain-report-service</code> 也已经是 <code>1a</code>、<code>1b</code> 各一个，AZ 均衡了。</li>
+</ul>
+<p>也就是说，只要最大的那个服务降下来，腾出的空间就够后面的服务按正常的 200&#x2F;50 滚动了。剩下的事情，就是把其余 15 个服务一个个切到减半后的 revision。</p>
+<h2 id="剩下-15-个服务：一个串行脚本"><a href="#剩下-15-个服务：一个串行脚本" class="headerlink" title="剩下 15 个服务：一个串行脚本"></a>剩下 15 个服务：一个串行脚本</h2><p>最后写了一个脚本，逻辑很简单，但有几个点是刻意设计的：</p>
+<ul>
+<li><strong>写目标值，不写”除以 2”。</strong> 每个服务的目标 CPU 直接写死在脚本里。这样脚本中途失败、修好后整段重跑，已经切过去的服务不会被再减一半。</li>
+<li><strong>已经达标的服务跳过。</strong> 先读线上当前 revision 的 CPU，等于目标值就跳过。</li>
+<li><strong>以线上 revision 为底。</strong> 原因前面说过，仓库里的 JSON 有占位符。</li>
+<li><strong>每个服务都等稳定。</strong> <code>aws ecs wait services-stable</code>。</li>
+<li><strong>检查有没有被回滚。</strong> circuit breaker 回滚之后，服务也会”稳定”，只不过稳定在旧 revision 上。所以等完之后，再确认服务当前的 revision 是不是刚注册的那个。</li>
+<li><strong>串行，失败即停。</strong> 不并行，免得几个服务的新 task 同时去抢那 2048 的 CPU。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">set</span> -euo pipefail</span><br><span class="line"></span><br><span class="line">PROFILE=prod</span><br><span class="line">REGION=ap-southeast-1</span><br><span class="line">CLUSTER=&lt;cluster&gt;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">deploy</span></span>() &#123;</span><br><span class="line">  <span class="built_in">local</span> svc=<span class="variable">$1</span> container=<span class="variable">$2</span> cpu=<span class="variable">$3</span></span><br><span class="line">  <span class="built_in">local</span> cur new live_cpu</span><br><span class="line"></span><br><span class="line">  cur=$(aws --no-cli-pager ecs describe-services \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> --cluster <span class="string">&quot;<span class="variable">$CLUSTER</span>&quot;</span> \</span><br><span class="line">    --services <span class="string">&quot;<span class="variable">$svc</span>&quot;</span> --query <span class="string">&#x27;services[0].taskDefinition&#x27;</span> --output text)</span><br><span class="line"></span><br><span class="line">  live_cpu=$(aws --no-cli-pager ecs describe-task-definition \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> --task-definition <span class="string">&quot;<span class="variable">$cur</span>&quot;</span> \</span><br><span class="line">    --query <span class="string">&quot;taskDefinition.containerDefinitions[?name==&#x27;<span class="variable">$container</span>&#x27;].cpu | [0]&quot;</span> \</span><br><span class="line">    --output text)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> [ <span class="string">&quot;<span class="variable">$live_cpu</span>&quot;</span> = <span class="string">&quot;<span class="variable">$cpu</span>&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;== <span class="variable">$svc</span> already at cpu=<span class="variable">$cpu</span> (<span class="variable">$cur</span>), skip&quot;</span></span><br><span class="line">    <span class="built_in">return</span></span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;== <span class="variable">$svc</span>: <span class="variable">$cur</span> cpu=<span class="variable">$live_cpu</span> -&gt; <span class="variable">$cpu</span>&quot;</span></span><br><span class="line"></span><br><span class="line">  aws --no-cli-pager ecs describe-task-definition \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> --task-definition <span class="string">&quot;<span class="variable">$cur</span>&quot;</span> \</span><br><span class="line">    --query taskDefinition \</span><br><span class="line">  | jq --arg name <span class="string">&quot;<span class="variable">$container</span>&quot;</span> --argjson cpu <span class="string">&quot;<span class="variable">$cpu</span>&quot;</span> <span class="string">&#x27;</span></span><br><span class="line"><span class="string">      del(.taskDefinitionArn, .revision, .status, .requiresAttributes,</span></span><br><span class="line"><span class="string">          .compatibilities, .registeredAt, .registeredBy)</span></span><br><span class="line"><span class="string">      | .containerDefinitions |= map(if .name == $name then .cpu = $cpu else . end)</span></span><br><span class="line"><span class="string">    &#x27;</span> &gt; <span class="string">&quot;/tmp/td-<span class="variable">$svc</span>.json&quot;</span></span><br><span class="line"></span><br><span class="line">  new=$(aws --no-cli-pager ecs register-task-definition \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> \</span><br><span class="line">    --cli-input-json <span class="string">&quot;file:///tmp/td-<span class="variable">$svc</span>.json&quot;</span> \</span><br><span class="line">    --query <span class="string">&#x27;taskDefinition.taskDefinitionArn&#x27;</span> --output text)</span><br><span class="line"></span><br><span class="line">  aws --no-cli-pager ecs update-service \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> --cluster <span class="string">&quot;<span class="variable">$CLUSTER</span>&quot;</span> \</span><br><span class="line">    --service <span class="string">&quot;<span class="variable">$svc</span>&quot;</span> --task-definition <span class="string">&quot;<span class="variable">$new</span>&quot;</span> &gt; /dev/null</span><br><span class="line"></span><br><span class="line">  aws --no-cli-pager ecs <span class="built_in">wait</span> services-stable \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> --cluster <span class="string">&quot;<span class="variable">$CLUSTER</span>&quot;</span> --services <span class="string">&quot;<span class="variable">$svc</span>&quot;</span></span><br><span class="line"></span><br><span class="line">  cur=$(aws --no-cli-pager ecs describe-services \</span><br><span class="line">    --profile <span class="string">&quot;<span class="variable">$PROFILE</span>&quot;</span> --region <span class="string">&quot;<span class="variable">$REGION</span>&quot;</span> --cluster <span class="string">&quot;<span class="variable">$CLUSTER</span>&quot;</span> \</span><br><span class="line">    --services <span class="string">&quot;<span class="variable">$svc</span>&quot;</span> --query <span class="string">&#x27;services[0].taskDefinition&#x27;</span> --output text)</span><br><span class="line">  <span class="keyword">if</span> [ <span class="string">&quot;<span class="variable">$cur</span>&quot;</span> != <span class="string">&quot;<span class="variable">$new</span>&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;!! <span class="variable">$svc</span> rolled back to <span class="variable">$cur</span> (expected <span class="variable">$new</span>), stopping&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 1</span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;   <span class="variable">$svc</span> stable on <span class="variable">$new</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># service                  container                 target cpu</span></span><br><span class="line">deploy job-trade-service     &lt;job-trade-container&gt;     512</span><br><span class="line">deploy gateway-service       &lt;gateway-container&gt;       256</span><br><span class="line">deploy auth-service          &lt;auth-container&gt;          256</span><br><span class="line"><span class="comment"># ... 其余服务按 CPU 从大到小排列</span></span><br><span class="line">deploy domain-report-service &lt;domain-report-container&gt; 128</span><br></pre></td></tr></table></figure>
+
+<p>顺序按 CPU 从大到小排，先处理腾空间最多的服务。desired 为 0 的服务，切 revision 只是改个指针，不会真的起 task。</p>
+<p>每个 desired 为 2 的服务大约要几分钟：容器健康检查的 <code>startPeriod</code> 是 120 秒，旧 task 还要等连接 drain 完。15 个服务串行跑下来，比从 dev 一路推 CD 到 prod 还是快得多。</p>
+<h2 id="收尾"><a href="#收尾" class="headerlink" title="收尾"></a>收尾</h2><p>还有两件事。</p>
+<p>第一，Terraform 不会出现 drift。我们 prod 的 ECS service 是 Terraform 建的，但设置了忽略 task definition 的变化（<code>lifecycle &#123; ignore_changes = [task_definition, desired_count] &#125;</code>），task definition 由 CD 负责。所以手工切 revision，Terraform 那边看不出任何差异。</p>
+<p>第二，仓库要和线上保持一致。CPU 减半的 PR 已经合进了 main，下次这些服务正常走 CD，注册出来的 revision 和现在手工注册的 CPU 是一致的。另外我们还有一份灾备区域用的 task definition，约定是改 prod 的时候同步改它，这次也补了一个提交。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p>这次有几点值得记下来。</p>
+<p><strong>第一，<code>force-new-deployment</code> 不等于”重新部署最新配置”。</strong> 它只是用当前 revision 重新拉起 task。适合的场景是：镜像 tag 没变但镜像内容变了（比如用了 <code>latest</code>），或者想让 task 重新读一次 Secrets Manager、S3 上的环境变量文件。想让 task definition 的改动生效，必须注册新 revision，再 <code>update-service</code> 指过去。</p>
+<p><strong>第二，EC2 启动类型下，容器的 <code>cpu</code> 是调度用的预留值。</strong> 集群”满了”，指的是预留满了，不代表机器的 CPU 真的被用光。ECS 调度时只看预留：剩余预留放不下，task 就起不来。这也是为什么这次把预留减半，就能直接解决问题。至于预留该设多少，要结合实际使用量来定，那是另外一件事。</p>
+<p><strong>第三，节点资源打满的时候，滚动部署本身也需要空间。</strong> 200&#x2F;50 的策略意味着先加后减，没有余量就滚不动。要么平时留一点余量，要么让集群能自动扩容，要么像这次一样，先挑一个能腾出最多空间的服务下手。</p>
+<p><strong>第四，开了 Availability Zone rebalancing 的服务，<code>maximumPercent</code> 必须大于 100。</strong> “先停后起”这条路，对这类服务是走不通的，除非先把 rebalancing 关掉。恢复的时候，部署策略和 rebalancing 要在同一次调用里改。</p>
+<p><strong>第五，绕过 CD 不可怕，可怕的是绕完之后仓库和线上对不上。</strong> 这次能放心地直接改 prod，前提是：改动本身已经在仓库里合并了；新 revision 以线上为底，只改了一个字段；Terraform 不管 task definition。手工操作只是让本来就会发生的事情提前发生。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/cli/latest/reference/ecs/update-service.html">AWS CLI: ecs update-service</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-rebalancing.html">Amazon ECS: Balancing an Amazon ECS service across Availability Zones</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html">Amazon ECS: Task definition parameters</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/deployment-circuit-breaker.html">Amazon ECS: Deployment circuit breaker</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AWS/" rel="tag"># AWS</a>
+              <a href="/tags/ECS/" rel="tag"># ECS</a>
+              <a href="/tags/Task-Definition/" rel="tag"># Task Definition</a>
+              <a href="/tags/AWS-CLI/" rel="tag"># AWS CLI</a>
+              <a href="/tags/CI-CD/" rel="tag"># CI/CD</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/05/springboot-github-actions-build-optimization/index.html" rel="prev" title="Spring Boot 应用的 GitHub Actions 构建优化：哪些真的快了，哪些只是看起来快了">
+                  <i class="fa fa-angle-left"></i> Spring Boot 应用的 GitHub Actions 构建优化：哪些真的快了，哪些只是看起来快了
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/07/release-please-java-release-train/index.html" rel="next" title="用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎">
+                  用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

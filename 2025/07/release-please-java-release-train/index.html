@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起上一篇写 GitHub Actions 构建优化的时候，贴过一段服务仓库的 pipeline.yml，里面的 run-name 会把运行分成三类：[PR gate]、[Path-A · dev&#x2F;qa] 和 [Path-B · prod train]。当时没有展开讲，这篇专门说说这套发布模型。 背景是这样的：我们有十几个 Java 微服务，跑在 ECS 上，环境有 dev、qa、preprod、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎">
+<meta property="og:url" content="https://ming.theyan.gs/2025/07/release-please-java-release-train/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起上一篇写 GitHub Actions 构建优化的时候，贴过一段服务仓库的 pipeline.yml，里面的 run-name 会把运行分成三类：[PR gate]、[Path-A · dev&#x2F;qa] 和 [Path-B · prod train]。当时没有展开讲，这篇专门说说这套发布模型。 背景是这样的：我们有十几个 Java 微服务，跑在 ECS 上，环境有 dev、qa、preprod、">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-07-15T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-05T13:01:12.307Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="CI&#x2F;CD">
+<meta property="article:tag" content="GitHub Actions">
+<meta property="article:tag" content="Release Please">
+<meta property="article:tag" content="Maven">
+<meta property="article:tag" content="Conventional Commits">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/07/release-please-java-release-train/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/07/release-please-java-release-train/index.html","path":"2025/07/release-please-java-release-train/index.html","title":"用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%A4%E4%B8%AA-workflow%EF%BC%8C%E5%90%84%E7%AE%A1%E4%B8%80%E6%91%8A"><span class="nav-number">2.</span> <span class="nav-text">两个 workflow，各管一摊</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#main-%E5%8F%AA%E6%9C%89%E4%B8%A4%E7%A7%8D%E7%8A%B6%E6%80%81"><span class="nav-number">3.</span> <span class="nav-text">main 只有两种状态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8C%E8%BD%A8%EF%BC%9APath-A-%E5%92%8C-Path-B"><span class="nav-number">4.</span> <span class="nav-text">双轨：Path A 和 Path B</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E9%81%93-PR-%E9%97%A8%E7%A6%81"><span class="nav-number">5.</span> <span class="nav-text">三道 PR 门禁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-version-state-check%EF%BC%9A%E5%86%BB%E7%BB%93%E6%80%81%E4%B8%8D%E6%94%B6%E5%8A%9F%E8%83%BD-PR"><span class="nav-number">5.1.</span> <span class="nav-text">1. version-state-check：冻结态不收功能 PR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-dependency-pin-check%EF%BC%9A%E5%8F%91%E7%89%88%E6%97%B6%E5%86%85%E9%83%A8%E4%BE%9D%E8%B5%96%E4%B8%8D%E8%83%BD%E6%98%AF-SNAPSHOT"><span class="nav-number">5.2.</span> <span class="nav-text">2. dependency-pin-check：发版时内部依赖不能是 SNAPSHOT</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Maven-Prelease%EF%BC%9A%E5%9C%A8%E6%9E%84%E5%BB%BA%E5%B1%82%E9%9D%A2%E5%86%8D%E6%8C%A1%E4%B8%80%E6%AC%A1"><span class="nav-number">5.3.</span> <span class="nav-text">3. Maven -Prelease：在构建层面再挡一次</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%B3%E8%BF%87%E8%A7%84%E5%88%99%EF%BC%9A%E4%B8%A4%E5%B1%82"><span class="nav-number">6.</span> <span class="nav-text">跳过规则：两层</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%9F%E4%BA%A7%E9%95%9C%E5%83%8F%E4%BB%8E%E5%93%AA%E6%9D%A5"><span class="nav-number">7.</span> <span class="nav-text">生产镜像从哪来</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#release-please-config-json"><span class="nav-number">8.</span> <span class="nav-text">release-please-config.json</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">9.</span> <span class="nav-text">多说几句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">10.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">123</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">537</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/07/release-please-java-release-train/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-07-16 00:00:00" itemprop="dateCreated datePublished" datetime="2025-07-16T00:00:00+08:00">2025-07-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-11-05 21:01:12" itemprop="dateModified" datetime="2026-11-05T21:01:12+08:00">2026-11-05</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>上一篇写 GitHub Actions 构建优化的时候，贴过一段服务仓库的 <code>pipeline.yml</code>，里面的 <code>run-name</code> 会把运行分成三类：<code>[PR gate]</code>、<code>[Path-A · dev/qa]</code> 和 <code>[Path-B · prod train]</code>。当时没有展开讲，这篇专门说说这套发布模型。</p>
+<p>背景是这样的：我们有十几个 Java 微服务，跑在 ECS 上，环境有 dev、qa、preprod、prod 四个。早期的流程是合并到 main 之后，一路 dev、qa、preprod、prod 串行部署下去。这样做的问题是，任何一次合并都可能一路滚到 prod 门口，”什么时候发版”和”什么时候合代码”绑在了一起。</p>
+<p>后来我们用 Release Please 把这两件事拆开：合代码只到 qa，发版是一次单独的、有版本号的动作。</p>
+<p>下面以 gateway 服务为例，按 workflow 源码把这套流程过一遍。</p>
+<span id="more"></span>
+
+<h2 id="两个-workflow，各管一摊"><a href="#两个-workflow，各管一摊" class="headerlink" title="两个 workflow，各管一摊"></a>两个 workflow，各管一摊</h2><p>每个服务仓库里有两个 workflow。</p>
+<p><code>release-please.yml</code> 只负责版本：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">name:</span> <span class="string">Release</span> <span class="string">Please</span></span><br><span class="line"></span><br><span class="line"><span class="attr">on:</span></span><br><span class="line">  <span class="attr">push:</span></span><br><span class="line">    <span class="attr">branches:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">main</span></span><br><span class="line">  <span class="attr">workflow_dispatch:</span></span><br><span class="line"></span><br><span class="line"><span class="attr">permissions:</span></span><br><span class="line">  <span class="attr">contents:</span> <span class="string">write</span></span><br><span class="line">  <span class="attr">pull-requests:</span> <span class="string">write</span></span><br><span class="line"></span><br><span class="line"><span class="attr">jobs:</span></span><br><span class="line">  <span class="attr">release-please:</span></span><br><span class="line">    <span class="attr">runs-on:</span> <span class="string">ubuntu-latest</span></span><br><span class="line">    <span class="attr">steps:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">uses:</span> <span class="string">googleapis/release-please-action@v4</span></span><br><span class="line">        <span class="attr">with:</span></span><br><span class="line">          <span class="attr">config-file:</span> <span class="string">release-please-config.json</span></span><br><span class="line">          <span class="attr">manifest-file:</span> <span class="string">.release-please-manifest.json</span></span><br><span class="line">          <span class="attr">token:</span> <span class="string">$&#123;&#123;</span> <span class="string">secrets.RELEASE_PLEASE_TOKEN</span> <span class="string">&#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>它在每次 main 有 push 时运行，根据 Conventional Commits 维护一个 Release PR；Release PR 合并后，创建 GitHub Release 和 tag。</p>
+<p><code>pipeline.yml</code> 负责构建和部署，响应 <code>pull_request</code>、<code>push</code>、<code>release: published</code> 和 <code>workflow_dispatch</code> 四种事件，真正的逻辑都在 DevOps 仓库的可复用 workflow 里。</p>
+<p>这里有一个容易踩的坑：<code>token</code> 不能用默认的 <code>GITHUB_TOKEN</code>。GitHub 的规则是，用 <code>GITHUB_TOKEN</code> 触发的事件（除了 <code>workflow_dispatch</code> 和 <code>repository_dispatch</code>）不会再触发新的 workflow run。如果 Release Please 用 <code>GITHUB_TOKEN</code> 创建 Release，那 <code>release: published</code> 就不会触发 <code>pipeline.yml</code>，生产发布也就不会开始；它创建的 Release PR 上，PR 门禁也不会跑。所以我们用的是一个专门的机器人账号的 token。</p>
+<h2 id="main-只有两种状态"><a href="#main-只有两种状态" class="headerlink" title="main 只有两种状态"></a>main 只有两种状态</h2><p>这套模型的核心，是 main 分支上 <code>pom.xml</code> 的版本号只允许处于两种状态之一：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">开发态：x.y.z-SNAPSHOT</span><br><span class="line">  │  功能 PR 陆续合并，每次合并走 Path A（dev / qa）</span><br><span class="line">  │</span><br><span class="line">  │  Release Please 维护 Release PR：chore(main): release x.y.z</span><br><span class="line">  ▼</span><br><span class="line">合并 Release PR</span><br><span class="line">  │</span><br><span class="line">冻结态：x.y.z</span><br><span class="line">  │  Release Please 创建 GitHub Release（tag）</span><br><span class="line">  │  release: published 触发 Path B（qa → preprod → prod）</span><br><span class="line">  │</span><br><span class="line">  │  Release Please 打开 SNAPSHOT PR：chore(main): release x.y.(z+1)-SNAPSHOT</span><br><span class="line">  ▼</span><br><span class="line">合并 SNAPSHOT PR</span><br><span class="line">  │</span><br><span class="line">回到开发态</span><br></pre></td></tr></table></figure>
+
+<p>Maven 类型的 Release Please 在发版之后，会自动再开一个 SNAPSHOT PR，把版本推到下一个开发版本。在这个 SNAPSHOT PR 合并之前，main 处于”冻结态”，这时候不允许合并功能 PR。原因很简单：如果在冻结态上继续合功能，下一个 Release PR 的版本基线就乱了。</p>
+<p>这个约束靠下面要讲的 <code>version-state-check</code> 来执行。</p>
+<h2 id="双轨：Path-A-和-Path-B"><a href="#双轨：Path-A-和-Path-B" class="headerlink" title="双轨：Path A 和 Path B"></a>双轨：Path A 和 Path B</h2><p><code>pipeline.yml</code> 调用的是 DevOps 仓库里的一个 facade workflow。部署范围由事件类型决定：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">deploy:</span></span><br><span class="line">  <span class="attr">uses:</span> <span class="string">&lt;org&gt;/devops/.github/workflows/reusable-cd.yml@main</span></span><br><span class="line">  <span class="attr">with:</span></span><br><span class="line">    <span class="attr">image_tag:</span> <span class="string">$&#123;&#123;</span> <span class="string">needs.build.outputs.image_tag</span> <span class="string">&#125;&#125;</span></span><br><span class="line">    <span class="attr">deploy_scope:</span> <span class="string">$&#123;&#123;</span> <span class="string">github.event_name</span> <span class="string">==</span> <span class="string">&#x27;release&#x27;</span> <span class="string">&amp;&amp;</span> <span class="string">&#x27;release-only&#x27;</span> <span class="string">||</span> <span class="string">&#x27;test-only&#x27;</span> <span class="string">&#125;&#125;</span></span><br><span class="line">    <span class="attr">release_autotest_env:</span> <span class="string">qa</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Path A（<code>test-only</code>）</strong>，由 push 到 main（以及手动触发）启动：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">deploy-dev → DAST → deploy-qa → qa-automated-test</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>dev 部署完之后，在 dev 上跑一轮 OWASP ZAP baseline 扫描；</li>
+<li>qa 部署完之后，调用 QA 团队的自动化测试 workflow，测试失败整条流水线就是失败；</li>
+<li>到这里就结束了，<strong>不碰 preprod 和 prod</strong>。</li>
+</ul>
+<p><strong>Path B（<code>release-only</code>）</strong>，由 <code>release: published</code> 启动：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">deploy-qa-release → qa-automated-test → deploy-preprod → deploy-prod</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>跳过 dev 和 DAST，直接把带版本号 tag 的镜像部署到 qa；</li>
+<li>自动化测试通过后才进 preprod，preprod 成功后才进 prod；</li>
+<li>prod 的部署 job 绑定了 GitHub Environment <code>prod</code>，配置了必需审批人，部署前要在 Actions 页面点批准。</li>
+</ul>
+<p>两条路径的分工是：Path A 保证每次合并都在 dev 和 qa 上验证过；Path B 保证进入 preprod 和 prod 的，只能是一个有版本号、有 tag、有 changelog 的发布。</p>
+<p><code>reusable-cd.yml</code> 里还保留着一个旧的 <code>full</code> 模式（dev、qa、preprod、prod 一路串行），给还没迁过来的服务用。它和 Path B 有一个关键区别：在 <code>full</code> 模式下，qa 自动化测试和 preprod 部署是并行的，测试失败不会挡住 preprod；Path B 里，自动化测试是进入 preprod 之前的硬门禁。</p>
+<h2 id="三道-PR-门禁"><a href="#三道-PR-门禁" class="headerlink" title="三道 PR 门禁"></a>三道 PR 门禁</h2><h3 id="1-version-state-check：冻结态不收功能-PR"><a href="#1-version-state-check：冻结态不收功能-PR" class="headerlink" title="1. version-state-check：冻结态不收功能 PR"></a>1. version-state-check：冻结态不收功能 PR</h3><p>这个检查读的是 <strong>base 分支</strong>（也就是 main）的 <code>pom.xml</code>，不是 PR 自己的：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="bullet">-</span> <span class="attr">uses:</span> <span class="string">actions/checkout@v7</span></span><br><span class="line">  <span class="attr">with:</span></span><br><span class="line">    <span class="attr">ref:</span> <span class="string">$&#123;&#123;</span> <span class="string">github.base_ref</span> <span class="string">&#125;&#125;</span></span><br><span class="line">    <span class="attr">fetch-depth:</span> <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<p>如果 main 上的版本不是 <code>-SNAPSHOT</code> 结尾，就直接失败：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> [[ <span class="string">&quot;<span class="variable">$VERSION</span>&quot;</span> == *-SNAPSHOT ]]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;main is in SNAPSHOT development state: <span class="variable">$VERSION</span>&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> 0</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;::error::main is at released version &#x27;<span class="variable">$VERSION</span>&#x27;. Merge SNAPSHOT PR first.&quot;</span></span><br><span class="line"><span class="built_in">exit</span> 1</span><br></pre></td></tr></table></figure>
+
+<p>Release Please 自己开的 PR 要放行：分支名以 <code>release-please--</code> 开头的、标题以 <code>chore(main): release</code> 开头的、带 <code>autorelease: snapshot</code> 标签的，都跳过检查。</p>
+<p>读版本号这一步有个小坑。Maven 项目通常有 <code>&lt;parent&gt;</code>，而 parent 里也有一个 <code>&lt;version&gt;</code>，直接 <code>grep -m1 &#39;&lt;version&gt;&#39;</code> 拿到的是 parent 的版本（往往也是 SNAPSHOT），检查就失去了意义。所以脚本先跳过 <code>&lt;/parent&gt;</code> 之前的部分：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Project &lt;version&gt; comes after &lt;parent&gt;; grep -m1 hits parent version (often SNAPSHOT).</span></span><br><span class="line"><span class="keyword">if</span> grep -q <span class="string">&#x27;&lt;/parent&gt;&#x27;</span> pom.xml; <span class="keyword">then</span></span><br><span class="line">  VERSION=$(sed -n <span class="string">&#x27;/&lt;\/parent&gt;/,$p&#x27;</span> pom.xml | grep -m1 <span class="string">&#x27;&lt;version&gt;&#x27;</span> \</span><br><span class="line">    | sed -E <span class="string">&#x27;s/.*&lt;version&gt;([^&lt;]+)&lt;\/version&gt;.*/\1/&#x27;</span> | <span class="built_in">tr</span> -d <span class="string">&#x27;[:space:]&#x27;</span>)</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">  VERSION=$(grep -m1 <span class="string">&#x27;&lt;version&gt;&#x27;</span> pom.xml \</span><br><span class="line">    | sed -E <span class="string">&#x27;s/.*&lt;version&gt;([^&lt;]+)&lt;\/version&gt;.*/\1/&#x27;</span> | <span class="built_in">tr</span> -d <span class="string">&#x27;[:space:]&#x27;</span>)</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-dependency-pin-check：发版时内部依赖不能是-SNAPSHOT"><a href="#2-dependency-pin-check：发版时内部依赖不能是-SNAPSHOT" class="headerlink" title="2. dependency-pin-check：发版时内部依赖不能是 SNAPSHOT"></a>2. dependency-pin-check：发版时内部依赖不能是 SNAPSHOT</h3><p>我们的服务之间有内部 Maven 依赖（共同的 parent POM、各种 client 和公共库）。开发态下依赖 SNAPSHOT 版本很正常，但正式发版的时候，如果还依赖着某个 SNAPSHOT，这个”正式版”其实是不可复现的。</p>
+<p>这个检查会对比 PR 的 base 和 head 两个版本的所有 POM，对内部依赖执行两条规则：</p>
+<ul>
+<li><strong>规则 A</strong>：严格模式下，所有内部依赖都不能是 SNAPSHOT；</li>
+<li><strong>规则 B</strong>：PR 里改动过的内部依赖，版本不能比 base 低（降级），除非 PR 带了 <code>dependency-pin:allow-downgrade</code> 标签。</li>
+</ul>
+<p>什么时候进严格模式，是由 PR 的类型决定的：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">MODE=skip</span><br><span class="line">REQUIRE_PARENT=<span class="literal">false</span></span><br><span class="line"><span class="comment"># release-please creates the PR before applying its label, so the</span></span><br><span class="line"><span class="comment"># initial pull_request event can have an empty labels array. The</span></span><br><span class="line"><span class="comment"># title is available atomically and identifies the snapshot bump.</span></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$LABELS</span>&quot;</span> | grep -q <span class="string">&#x27;autorelease: snapshot&#x27;</span> \</span><br><span class="line">  || [[ <span class="string">&quot;<span class="variable">$PR_TITLE</span>&quot;</span> =~ -SNAPSHOT[[:space:]]*$ ]]; <span class="keyword">then</span></span><br><span class="line">  <span class="built_in">echo</span> <span class="string">&quot;mode=skip&quot;</span> &gt;&gt; <span class="string">&quot;<span class="variable">$GITHUB_OUTPUT</span>&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> 0</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> [[ <span class="string">&quot;<span class="variable">$HEAD_REF</span>&quot;</span> == release-please--* ]] \</span><br><span class="line">  || [[ <span class="string">&quot;<span class="variable">$PR_TITLE</span>&quot;</span> =~ ^chore\(main\):[[:space:]]release ]]; <span class="keyword">then</span></span><br><span class="line">  MODE=strict</span><br><span class="line">  REQUIRE_PARENT=<span class="literal">true</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$LABELS</span>&quot;</span> | grep -q <span class="string">&quot;<span class="variable">$STRICT_LABEL</span>&quot;</span>; <span class="keyword">then</span></span><br><span class="line">  MODE=strict</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>几个细节：</p>
+<ul>
+<li>SNAPSHOT PR 永远跳过，它的目的就是把版本推回开发态；</li>
+<li>Release PR 进严格模式，并且额外要求 parent POM 必须是正式版本，哪怕这个 PR 根本没改 parent；</li>
+<li>普通 PR 默认跳过，但可以手动打 <code>release-train: pin-deps</code> 标签进入严格模式，用于发版前专门调整依赖版本的 PR；</li>
+<li>判断 SNAPSHOT PR 时，除了看标签，还看标题。注释里写得很清楚：Release Please 是先创建 PR、再打标签的，第一次触发的 <code>pull_request</code> 事件里，标签数组可能是空的。只看标签的话，SNAPSHOT PR 的第一次检查会被误判成 Release PR，走进严格模式然后失败。标题是创建 PR 时一次性写好的，不存在这个时间差。</li>
+</ul>
+<h3 id="3-Maven-Prelease：在构建层面再挡一次"><a href="#3-Maven-Prelease：在构建层面再挡一次" class="headerlink" title="3. Maven -Prelease：在构建层面再挡一次"></a>3. Maven <code>-Prelease</code>：在构建层面再挡一次</h3><p>除了 PR 上的脚本检查，构建本身也会在发版场景下启用 Maven 的 <code>release</code> profile，里面用 enforcer 禁止内部依赖的 SNAPSHOT 版本。</p>
+<p>启用条件在 facade 里：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">maven_release_profile:</span> <span class="string">&gt;-</span></span><br><span class="line"><span class="string">  $&#123;&#123; github.event_name == &#x27;release&#x27;</span></span><br><span class="line"><span class="string">      || (</span></span><br><span class="line"><span class="string">        github.event_name == &#x27;pull_request&#x27;</span></span><br><span class="line"><span class="string">        &amp;&amp; startsWith(github.head_ref, &#x27;release-please--branches--&#x27;)</span></span><br><span class="line"><span class="string">        &amp;&amp; !endsWith(github.event.pull_request.title, &#x27;-SNAPSHOT&#x27;)</span></span><br><span class="line"><span class="string">        &amp;&amp; !contains(github.event.pull_request.labels.*.name, &#x27;autorelease: snapshot&#x27;)</span></span><br><span class="line"><span class="string">      ) &#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>也就是两种情况：<code>release: published</code> 事件，以及 Release Please 开的正式 Release PR。</p>
+<p><code>reusable-ci.yml</code> 里还有一道保险：即使调用方传了 <code>true</code>，只要是 SNAPSHOT PR，也不会启用。因为 Release Please 的分支同时承载 Release PR 和 SNAPSHOT PR，对后者启用 enforcer 一定会失败。</p>
+<p>脚本检查和 enforcer 看起来重复，其实各有分工：脚本检查的是 PR 改动前后的差异（包括降级），enforcer 检查的是构建时真正解析出来的依赖。</p>
+<h2 id="跳过规则：两层"><a href="#跳过规则：两层" class="headerlink" title="跳过规则：两层"></a>跳过规则：两层</h2><p>Release PR 合并时会产生一次 push 到 main，紧接着 Release Please 创建 Release，又会触发一次 <code>release: published</code>。如果两次都构建、部署，就重复了。真正的生产构建应该只在 <code>release: published</code> 上发生。</p>
+<p>第一层在 facade 的 <code>build</code> job 上：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">build:</span></span><br><span class="line">  <span class="attr">if:</span> <span class="string">&gt;-</span></span><br><span class="line"><span class="string">    always()</span></span><br><span class="line"><span class="string">    &amp;&amp; ...</span></span><br><span class="line"><span class="string">    &amp;&amp; (</span></span><br><span class="line"><span class="string">      github.event_name != &#x27;push&#x27;</span></span><br><span class="line"><span class="string">      || !contains(github.event.head_commit.message || &#x27;&#x27;, &#x27;chore(main): release&#x27;)</span></span><br><span class="line"><span class="string">      || contains(github.event.head_commit.message || &#x27;&#x27;, &#x27;-SNAPSHOT&#x27;)</span></span><br><span class="line"><span class="string">    )</span></span><br></pre></td></tr></table></figure>
+
+<p>提交信息包含 <code>chore(main): release</code>、又不是 SNAPSHOT 的 push，不构建。</p>
+<p>第二层在 <code>reusable-cd.yml</code> 的第一个 job <code>check-branch</code> 上：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">check-branch:</span></span><br><span class="line">  <span class="comment"># Skip CD for release-please merge commits (only version/CHANGELOG changes)</span></span><br><span class="line">  <span class="attr">if:</span> <span class="string">&gt;-</span></span><br><span class="line"><span class="string">    github.event_name != &#x27;push&#x27; || (</span></span><br><span class="line"><span class="string">      !contains(github.event.head_commit.message || &#x27;&#x27;, &#x27;release-please--branches--&#x27;) &amp;&amp;</span></span><br><span class="line"><span class="string">      !contains(github.event.head_commit.message || &#x27;&#x27;, &#x27;chore(main): release&#x27;)</span></span><br><span class="line"><span class="string">    )</span></span><br></pre></td></tr></table></figure>
+
+<p>这一层没有 SNAPSHOT 的例外。按代码推下来，合并 SNAPSHOT PR 产生的 push（提交信息是 <code>chore(main): release x.y.z-SNAPSHOT</code>）会通过第一层，构建出一个 SNAPSHOT 镜像，但在第二层被跳过，不会部署到 dev 和 qa。这本身没什么问题，SNAPSHOT PR 只改了版本号，没有需要验证的代码变化；只是那次构建出来的镜像，其实没人用。</p>
+<p><code>check-branch</code> 对 <code>release</code> 事件还有一个来源检查：只接受由发布机器人创建、或者 <code>target_commitish</code> 是 <code>main</code>、或者是一个 40 位 commit SHA 的 Release。最后这个条件是专门为 Release Please 加的，它创建 Release 时，<code>target_commitish</code> 填的往往是合并提交的 SHA，而不是分支名。</p>
+<h2 id="生产镜像从哪来"><a href="#生产镜像从哪来" class="headerlink" title="生产镜像从哪来"></a>生产镜像从哪来</h2><p>Path B 构建时，<code>image_tag</code> 用的就是 Release 的 tag：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">image_tag:</span> <span class="string">$&#123;&#123;</span> <span class="string">github.event_name</span> <span class="string">==</span> <span class="string">&#x27;release&#x27;</span> <span class="string">&amp;&amp;</span> <span class="string">github.event.release.tag_name</span> <span class="string">||</span> <span class="string">&#x27;&#x27;</span> <span class="string">&#125;&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>后面 qa、preprod、prod 三个环境部署的都是这同一个 tag 的镜像。prod 跑的是什么版本，看 tag 就知道，也能直接对应到 GitHub Release 页面上的 changelog。</p>
+<p>我们的 ECR 开了 tag 不可变，所以 Path B 失败重跑时，会遇到”版本 tag 已经存在”的问题。上一篇构建优化里讲过处理方式：先查这个 tag 是否存在，存在且是同一个提交构建的就复用，不是就拒绝。</p>
+<h2 id="release-please-config-json"><a href="#release-please-config-json" class="headerlink" title="release-please-config.json"></a>release-please-config.json</h2><p>gateway 的配置是这样的：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;release-type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;maven&quot;</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;packages&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;.&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;release-type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;maven&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;component&quot;</span><span class="punctuation">:</span> <span class="string">&quot;&lt;service-name&gt;&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;changelog-path&quot;</span><span class="punctuation">:</span> <span class="string">&quot;CHANGELOG.md&quot;</span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;bump-minor-pre-major&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;bump-patch-for-minor-pre-major&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">      <span class="attr">&quot;extra-files&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;pom.xml&quot;</span><span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line">  <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>版本号的升级规则来自 Conventional Commits：<code>fix:</code> 升 patch，<code>feat:</code> 升 minor，<code>feat!:</code> 或者带 <code>BREAKING CHANGE</code> 的提交升 major。</p>
+<p><code>bump-minor-pre-major</code> 和 <code>bump-patch-for-minor-pre-major</code> 这两项，作用是在 1.0.0 之前降一级升版本：破坏性变更只升 minor，新功能只升 patch。不过 gateway 的 manifest 里当前版本已经是 2.8.0，这两项实际上不起作用。留着无害，但读配置的时候不要被它们误导。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p>回头看这套模型，有几点体会。</p>
+<p><strong>第一，把”合代码”和”发版”拆开，是整套设计的出发点。</strong> 合并只会走到 qa，进 preprod 和 prod 的只能是一个有版本号的 Release。代价是多了一个”发版”的动作，但换来的是：prod 上跑的每个版本都有 tag、有 changelog，也有一次明确的审批。</p>
+<p><strong>第二，冻结态是有成本的。</strong> Release PR 合并之后、SNAPSHOT PR 合并之前，所有功能 PR 都会被 <code>version-state-check</code> 挡住。如果有人发完版忘了合 SNAPSHOT PR，整个团队的 PR 都会卡住。所以发版的固定动作里，最后一步一定是”合并 SNAPSHOT PR”。</p>
+<p><strong>第三，靠提交信息做判断很脆弱，但这里没有更好的办法。</strong> 跳过规则、门禁的豁免条件，大量依赖 <code>chore(main): release</code>、<code>-SNAPSHOT</code>、<code>release-please--</code> 这些字符串。只要 Release Please 改了 PR 标题或分支名的格式，这些判断就会失效。好在这些格式都比较稳定；升级 <code>release-please-action</code> 的大版本时，值得专门回归一下。</p>
+<p><strong>第四，并发组要留意 release 事件。</strong> <code>pipeline.yml</code> 的并发配置是：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">concurrency:</span></span><br><span class="line">  <span class="attr">group:</span> <span class="string">cicd-$&#123;&#123;</span> <span class="string">github.repository</span> <span class="string">&#125;&#125;-$&#123;&#123;</span> <span class="string">github.event_name</span> <span class="string">&#125;&#125;</span></span><br><span class="line">  <span class="attr">cancel-in-progress:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>按事件类型拆分并发组，是为了让 Release PR 上的 <code>pull_request</code> 运行，不会取消 main 合并后的 <code>push</code> 部署。但这也意味着，如果同一个仓库短时间内发布了两个 Release，后一个会取消前一个正在进行的 Path B。正常节奏下不太会发生，但如果有人连续发两个版本，前一个可能停在 preprod 或 prod 的审批上就被取消了。</p>
+<p><strong>第五，门禁要能区分”谁开的 PR”。</strong> 同一套门禁，对功能 PR、Release PR、SNAPSHOT PR 的要求完全不同。如果不做区分，要么 Release Please 自己的 PR 过不了检查，要么检查对谁都形同虚设。这次梳理下来，门禁逻辑里最多的代码，其实都在处理”这是哪一种 PR”。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/googleapis/release-please">googleapis&#x2F;release-please</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/googleapis/release-please-action">googleapis&#x2F;release-please-action</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow">GitHub Docs: Triggering a workflow from a workflow</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/using-jobs/using-concurrency">GitHub Docs: Control the concurrency of workflows and jobs</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.conventionalcommits.org/">Conventional Commits</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/CI-CD/" rel="tag"># CI/CD</a>
+              <a href="/tags/GitHub-Actions/" rel="tag"># GitHub Actions</a>
+              <a href="/tags/Release-Please/" rel="tag"># Release Please</a>
+              <a href="/tags/Maven/" rel="tag"># Maven</a>
+              <a href="/tags/Conventional-Commits/" rel="tag"># Conventional Commits</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/06/ecs-force-new-deployment-cpu-reservation/index.html" rel="prev" title="force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后">
+                  <i class="fa fa-angle-left"></i> force-new-deployment 不会让新配置生效：ECS 节点 CPU 预留打满之后
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/08/ecs-awsvpc-eni-trunking/index.html" rel="next" title="一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘">
+                  一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

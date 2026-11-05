@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="我在 DevOps 和 IaC 这几个仓库里的 Git 操作，九成时间只用三个命令：gfo、grbom、gpf。 不开 feature 分支，不 merge main，也不用想「这次 push 要不要加 force」。所有改动都在一条只有我自己用的长期分支 ym-dev 上，攒到差不多了，在 GitHub 上开一个 ym-dev → main 的 PR。合并之后接着在同一条分支上干活。 这篇把这套">
+<meta property="og:type" content="article">
+<meta property="og:title" content="gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常">
+<meta property="og:url" content="https://ming.theyan.gs/2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="我在 DevOps 和 IaC 这几个仓库里的 Git 操作，九成时间只用三个命令：gfo、grbom、gpf。 不开 feature 分支，不 merge main，也不用想「这次 push 要不要加 force」。所有改动都在一条只有我自己用的长期分支 ym-dev 上，攒到差不多了，在 GitHub 上开一个 ym-dev → main 的 PR。合并之后接着在同一条分支上干活。 这篇把这套">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-09-17T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-05T13:01:12.307Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="Git">
+<meta property="article:tag" content="oh-my-zsh">
+<meta property="article:tag" content="rebase">
+<meta property="article:tag" content="GitHub">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/index.html","path":"2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/index.html","title":"gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E6%8F%90%EF%BC%9A%E8%BF%99%E6%9D%A1%E5%88%86%E6%94%AF%E5%8F%AA%E6%9C%89%E6%88%91%E4%B8%80%E4%B8%AA%E4%BA%BA%E7%94%A8"><span class="nav-number">1.</span> <span class="nav-text">前提：这条分支只有我一个人用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E4%B8%AA%E5%91%BD%E4%BB%A4"><span class="nav-number">2.</span> <span class="nav-text">三个命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E5%A4%A9%E9%87%8C%E7%9A%84%E6%A0%B7%E5%AD%90"><span class="nav-number">3.</span> <span class="nav-text">一天里的样子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%BF%BD-main-%E7%94%A8-rebase%EF%BC%8C%E8%80%8C%E4%B8%94%E5%AF%B9%E7%9D%80-origin-main"><span class="nav-number">4.</span> <span class="nav-text">为什么追 main 用 rebase，而且对着 origin&#x2F;main</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#rebase-%E7%9A%84%E4%BB%A3%E4%BB%B7%EF%BC%9A%E6%8F%90%E4%BA%A4%E4%BC%9A%E6%8D%A2-SHA"><span class="nav-number">4.1.</span> <span class="nav-text">rebase 的代价：提交会换 SHA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E5%BE%97%E4%B8%8D-rebase-%E6%97%B6%EF%BC%8C%E7%94%A8-range-diff-%E6%A0%B8%E5%AF%B9"><span class="nav-number">4.2.</span> <span class="nav-text">不得不 rebase 时，用 range-diff 核对</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B0%B8%E8%BF%9C-gpf"><span class="nav-number">5.</span> <span class="nav-text">为什么永远 gpf</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BA%E5%B2%94%E5%AD%90%E7%9A%84%E6%97%B6%E5%80%99"><span class="nav-number">6.</span> <span class="nav-text">出岔子的时候</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AA%E6%83%B3%E5%90%88%E4%B8%80%E9%83%A8%E5%88%86%EF%BC%9Aship-%E5%88%86%E6%94%AF"><span class="nav-number">7.</span> <span class="nav-text">只想合一部分：ship 分支</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">8.</span> <span class="nav-text">多说几句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">123</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">537</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-09-18 00:00:00" itemprop="dateCreated datePublished" datetime="2025-09-18T00:00:00+08:00">2025-09-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-11-05 21:01:12" itemprop="dateModified" datetime="2026-11-05T21:01:12+08:00">2026-11-05</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>我在 DevOps 和 IaC 这几个仓库里的 Git 操作，九成时间只用三个命令：<code>gfo</code>、<code>grbom</code>、<code>gpf</code>。</p>
+<p>不开 feature 分支，不 merge main，也不用想「这次 push 要不要加 force」。所有改动都在一条只有我自己用的长期分支 <code>ym-dev</code> 上，攒到差不多了，在 GitHub 上开一个 <code>ym-dev</code> → <code>main</code> 的 PR。合并之后接着在同一条分支上干活。</p>
+<p>这篇把这套做法和背后的几个判断写下来：为什么追 main 用 rebase、为什么永远 force push，以及出岔子的时候怎么收拾。</p>
+<span id="more"></span>
+
+<h2 id="前提：这条分支只有我一个人用"><a href="#前提：这条分支只有我一个人用" class="headerlink" title="前提：这条分支只有我一个人用"></a>前提：这条分支只有我一个人用</h2><p>下面所有内容都建立在一个前提上：**<code>ym-dev</code> 是我独占的，没有别人会往上面提交。**</p>
+<p>这个前提决定了我可以随意改写这条分支的历史：rebase、force push 都不会坑到别人。反过来，<code>main</code> 这种共享分支上，下面讲的 <code>gpf</code> 一次都不要用。</p>
+<p>另外两个小前提：终端用的是 oh-my-zsh 的 <code>git</code> 插件；默认分支叫 <code>main</code>（插件里的 <code>git_main_branch</code> 函数会自动识别 <code>main</code> 还是 <code>master</code>，所以叫 <code>master</code> 也一样）。</p>
+<h2 id="三个命令"><a href="#三个命令" class="headerlink" title="三个命令"></a>三个命令</h2><table>
+<thead>
+<tr>
+<th>别名</th>
+<th>展开</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>gfo</code></td>
+<td><code>git fetch origin</code></td>
+<td>把 GitHub 上的最新状态拉到本地的 <code>origin/*</code>，不碰当前分支和工作区</td>
+</tr>
+<tr>
+<td><code>grbom</code></td>
+<td><code>git rebase origin/$(git_main_branch)</code></td>
+<td>把 <code>ym-dev</code> 上的提交挪到 GitHub 上 main 的最新位置之后</td>
+</tr>
+<tr>
+<td><code>gpf</code></td>
+<td><code>git push --force-with-lease --force-if-includes</code></td>
+<td>带保护的 force push</td>
+</tr>
+</tbody></table>
+<p>插件里还有一个 <code>gpf!</code>，展开是裸的 <code>git push --force</code>，我不用。</p>
+<h2 id="一天里的样子"><a href="#一天里的样子" class="headerlink" title="一天里的样子"></a>一天里的样子</h2><p>开工的时候：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gfo &amp;&amp; grbom &amp;&amp; gpf</span><br></pre></td></tr></table></figure>
+
+<p>main 没有新东西的话，<code>grbom</code> 会说 <code>Current branch ym-dev is up to date.</code>，<code>gpf</code> 会说 <code>Everything up-to-date</code>，什么都没发生；main 有同事新合入的提交，<code>ym-dev</code> 就被接到最新的 main 后面，并同步到 GitHub。所以不用先判断「要不要 rebase」，每天无脑跑一遍就行。</p>
+<p>只有一个例外：PR 正在被评审的时候，下面单独说。</p>
+<p>写代码的时候：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gaa                       <span class="comment"># 或 ga &lt;文件...&gt;</span></span><br><span class="line">gcmsg <span class="string">&quot;fix: handle empty env var in deploy script&quot;</span></span><br><span class="line">gpf</span><br></pre></td></tr></table></figure>
+
+<p>提交信息用英文的 Conventional Commits，因为仓库用 release-please 生成版本和 changelog。push 永远是 <code>gpf</code>，不用 <code>gp</code>，原因后面说。</p>
+<p>想合进 main 的时候，在 GitHub 上开 PR：<code>ym-dev</code> → <code>main</code>。开之前最好先跑一遍 <code>gfo &amp;&amp; grbom &amp;&amp; gpf</code>，让 PR 基于最新的 main，冲突在本地就解决掉。</p>
+<p>PR 等审批的时候，不用停下来。继续在 <code>ym-dev</code> 上 commit、<code>gpf</code>，PR 会自动带上新提交。</p>
+<p>但这时候要不要追 main，得看 PR 处于什么状态：</p>
+<ul>
+<li><strong>还没人看，或者已经批了在等合并</strong>：照常 <code>gfo &amp;&amp; grbom &amp;&amp; gpf</code>。</li>
+<li><strong>已经有人在看，或者 PR 上有评论了</strong>：先不要 rebase。回应评论就追加新提交、<code>gpf</code>，评审的人看到的是「在上次的基础上又改了什么」。等评审结束再恢复每天 rebase。</li>
+<li><strong>评审期间 main 和我有冲突，非 rebase 不可</strong>：rebase 完、<code>gpf</code> 之前，先核对一下改动有没有被意外改变（见下文 <code>git range-diff</code>），然后在 PR 里留一句话说明，比如 <code>Rebased onto latest main to resolve a conflict in xxx; no other changes.</code></li>
+</ul>
+<p>为什么评审期间要克制，后面讲 rebase 的代价时再说。</p>
+<p>PR 合并之后，还是那一行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gfo &amp;&amp; grbom &amp;&amp; gpf</span><br></pre></td></tr></table></figure>
+
+<p>我们的 PR 用的是 merge commit 方式合并，<code>ym-dev</code> 上的提交原样进了 main 的历史，所以这一步的 <code>grbom</code> 本质上是一次快进：<code>ym-dev</code> 直接对齐到 main 的最新位置。如果 PR 等待期间我又加了新提交，这些新提交会被挪到 main 后面，成为下一个 PR 的内容。</p>
+<p>整个周期画出来是这样：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">        开工 / main 有更新 / PR 已合并</span><br><span class="line">                    |</span><br><span class="line">            gfo &amp;&amp; grbom &amp;&amp; gpf</span><br><span class="line">                    |</span><br><span class="line">                    v</span><br><span class="line">commit -&gt; gpf -&gt; commit -&gt; gpf -&gt; ...  (ym-dev)</span><br><span class="line">                    |</span><br><span class="line">                    v</span><br><span class="line">      GitHub PR: ym-dev -&gt; main（等待期继续 commit + gpf）</span><br></pre></td></tr></table></figure>
+
+<h2 id="为什么追-main-用-rebase，而且对着-origin-main"><a href="#为什么追-main-用-rebase，而且对着-origin-main" class="headerlink" title="为什么追 main 用 rebase，而且对着 origin&#x2F;main"></a>为什么追 main 用 rebase，而且对着 origin&#x2F;main</h2><p>追 main 有两种做法：<code>git merge origin/main</code> 或 <code>git rebase origin/main</code>。</p>
+<p>merge 不改写历史，对共享分支是对的选择；但在一条个人分支上，每追一次 main 就多一个 merge commit，几个月下来 <code>ym-dev</code> 的历史里一半是「Merge branch ‘main’ into ym-dev」，PR 里也全是噪音。rebase 让 <code>ym-dev</code> 始终是「main 最新位置 + 我的几个提交」，PR 里看到的就是我真正改了什么。代价是 rebase 会改写已经 push 过的提交，所以必须 force push。这个代价在独占分支上可以接受。</p>
+<p><code>grbom</code> 对着的是 <code>origin/main</code>，而不是本地的 <code>main</code>，这一点很关键：</p>
+<ul>
+<li><code>origin/main</code> 是上一次 fetch 时 GitHub 上 main 的快照，<code>gfo</code> 一下就是最新的；</li>
+<li>本地 <code>main</code> 只有 checkout 过去再 pull 才会更新，我根本不需要它。</li>
+</ul>
+<p>所以整个流程里我从来不切到 <code>main</code> 分支，<code>gfo</code> 在 <code>ym-dev</code> 上直接跑就行。也正因为 <code>grbom</code> 用的是快照，**<code>gfo</code> 必须在 <code>grbom</code> 之前**，否则 rebase 到的可能是几天前的 main。</p>
+<p>还有一点：<code>git status -sb</code> 显示的 ahead&#x2F;behind 是相对 upstream（<code>origin/ym-dev</code>）的，看不出落后 main 多少。想看的话：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git rev-list --left-right --count origin/$(git_main_branch)...HEAD</span><br></pre></td></tr></table></figure>
+
+<p>输出两个数字，左边是 main 有、我没有的提交数（落后），右边是我有、main 没有的提交数（领先）。不过既然每天都无脑跑 <code>gfo &amp;&amp; grbom &amp;&amp; gpf</code>，这个命令我很少用。</p>
+<h3 id="rebase-的代价：提交会换-SHA"><a href="#rebase-的代价：提交会换-SHA" class="headerlink" title="rebase 的代价：提交会换 SHA"></a>rebase 的代价：提交会换 SHA</h3><p>一个提交的 SHA，是对它的全部内容算出来的哈希，内容里包括快照（tree）、父提交（parent）、作者和提交者信息、提交信息。用 <code>git cat-file -p HEAD</code> 可以看到这些字段。</p>
+<p>假设我的 C1、C2 基于 main 上的 B，期间同事合入了 M1、M2：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">main:    A - B - M1 - M2</span><br><span class="line">ym-dev:      B - C1 - C2</span><br></pre></td></tr></table></figure>
+
+<p><code>grbom</code> 并不是把 C1、C2「挪」过去，提交对象一旦生成就不能修改。它是把 C1、C2 的改动在 M2 上重新应用一遍，生成两个新提交：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ym-dev:  A - B - M1 - M2 - C1&#x27; - C2&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>C1’ 的父提交从 B 变成了 M2，快照里多了 M1、M2 带来的文件，提交者时间也更新了，SHA 自然是新的。C2’ 的父提交是 C1’，于是也跟着变。改动（diff）一样，但快照和 SHA 都不一样了。</p>
+<p>GitHub 的 PR 不保存提交清单，它显示的是「从 <code>ym-dev</code> 能追溯到、从 <code>main</code> 追溯不到」的那些提交。<code>gpf</code> 之后，PR 里列的就成了 C1’、C2’；新的分支头也不再是旧分支头的后代，所以时间线上会出现一条 <code>force-pushed the ym-dev branch from ... to ...</code>。</p>
+<p>对 Git 和最终合进 main 的结果来说，这没有任何问题。代价只落在评审的人身上：如果他已经看了一半、甚至留了评论，旧提交从列表里消失了，「上次看到哪里」不好找；force-pushed 记录旁边的对比链接，比较的是新旧两个分支头，会混进 rebase 带进来的 main 上的改动；rebase 时解决冲突改到了被评论的那几行，那些评论还会被折叠成 outdated。这就是前面说「评审期间先不要 rebase」的原因。</p>
+<p>反过来，main 没有新提交，或者 PR 刚以 merge commit 方式合并、我还没加新提交时，<code>grbom</code> 只是原地不动或者一次快进，不会生成任何新提交，也就没有这个代价。</p>
+<h3 id="不得不-rebase-时，用-range-diff-核对"><a href="#不得不-rebase-时，用-range-diff-核对" class="headerlink" title="不得不 rebase 时，用 range-diff 核对"></a>不得不 rebase 时，用 range-diff 核对</h3><p>评审期间如果非 rebase 不可，在 <code>gpf</code> 之前跑一下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git range-diff origin/$(git_main_branch) @&#123;u&#125; HEAD</span><br></pre></td></tr></table></figure>
+
+<p><code>@&#123;u&#125;</code> 是 <code>origin/ym-dev</code>，在 push 之前它还停在 rebase 之前的位置。这条命令把 rebase 前后的提交逐个配对，比较的是每个提交的改动本身，不受 SHA 和基点变化的影响：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">1:  3aa3faf = 1:  210eddd C1</span><br><span class="line">2:  ca2dc98 = 2:  ddb842e C2</span><br></pre></td></tr></table></figure>
+
+<p><code>=</code> 表示改动完全一样；<code>!</code> 表示有变化，下面会列出具体差异，通常就是解决冲突时动过的地方。确认没问题再 <code>gpf</code>，有 <code>!</code> 的话，也正好知道该在 PR 里跟评审的人说明哪一处。</p>
+<p>注意顺序：<code>gpf</code> 之后 <code>@&#123;u&#125;</code> 就更新成新的分支头了，再跑这条命令就什么都比较不出来。</p>
+<h2 id="为什么永远-gpf"><a href="#为什么永远-gpf" class="headerlink" title="为什么永远 gpf"></a>为什么永远 gpf</h2><p>rebase 之后，本地 <code>ym-dev</code> 和 <code>origin/ym-dev</code> 的历史分叉了，普通的 <code>git push</code> 会被拒绝，只能 force。</p>
+<p>但不是每次 push 都需要 force：只是加了个提交的话，普通 push 就够了。如果每次都要判断「这次改没改写历史」，迟早会判断错。所以我的做法是：**在 <code>ym-dev</code> 上一律用 <code>gpf</code>**。快进的情况下它和普通 push 效果一样，改写过历史它也能推上去。</p>
+<p>问题是 force push 本身是危险的：它会把远端分支直接覆盖成本地的样子。<code>gpf</code> 的两个参数就是用来挡住「覆盖掉我没见过的东西」的。</p>
+<p>**<code>--force-with-lease</code>**：push 之前检查远端 <code>ym-dev</code> 当前的位置，是否还等于我本地记录的 <code>origin/ym-dev</code>。如果远端在我上次 fetch 之后被人动过，就拒绝。</p>
+<p>它有一个漏洞：「本地记录的 <code>origin/ym-dev</code>」会被任何一次 fetch 更新。IDE 在后台自动 fetch、或者我自己顺手跑了个 <code>gfo</code>，<code>origin/ym-dev</code> 就悄悄变成了远端最新的样子。这时 lease 检查会通过，但远端那些新提交我其实从来没看过，一 push 就没了。</p>
+<p><strong><code>--force-if-includes</code></strong> 补的就是这个洞：它额外检查远端 <code>ym-dev</code> 当前的位置，是否出现在本地 <code>ym-dev</code> 的 reflog 里，也就是说，我的本地分支是不是真的「经历过」远端的那个状态。只是被 fetch 下来、没有被我 rebase 或 merge 进本地分支的提交，过不了这一关。</p>
+<p>对独占分支来说，「被人动过」最现实的场景其实是我自己：在另一台电脑上推了几个提交，回到这台忘了同步。这时 <code>gpf</code> 会拒绝，而不是把另一台电脑的工作覆盖掉。</p>
+<p>正常流程里，<code>grbom</code> 之前本地 <code>ym-dev</code> 就停在 <code>origin/ym-dev</code> 的位置，这个位置自然在 reflog 里，所以 <code>gpf</code> 总能顺利推上去。</p>
+<p>由此还有一条推论：**<code>grbom</code> 和 <code>gpf</code> 必须成对出现。** rebase 完不 push，本地和远端就是分叉状态，PR 上看到的也还是旧的提交。</p>
+<h2 id="出岔子的时候"><a href="#出岔子的时候" class="headerlink" title="出岔子的时候"></a>出岔子的时候</h2><p><strong>rebase 遇到冲突。</strong> 按提示改好文件，然后：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ga &lt;文件...&gt;</span><br><span class="line">grbc        <span class="comment"># git rebase --continue</span></span><br></pre></td></tr></table></figure>
+
+<p>不想处理了，<code>grba</code>（<code>git rebase --abort</code>）回到 rebase 之前的样子。</p>
+<p>另外，工作区有未提交的改动时，<code>grbom</code> 会直接拒绝。先 commit，或者 <code>git stash</code> 一下。</p>
+<p><strong>rebase 完发现结果不对。</strong> 刚 rebase 完、还没 push 的话，<code>git reset --hard ORIG_HEAD</code> 可以回到 rebase 之前。已经过了好几步的话，去 <code>git reflog</code> 里找。</p>
+<p><strong><code>git status</code> 显示 diverged。</strong> 最常见的原因是 <code>grbom</code> 之后忘了 <code>gpf</code>。这时本地是对的，直接 <code>gpf</code> 就好。</p>
+<p>如果反过来，是本地被搞乱了，想以 GitHub 上的为准：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">gfo</span><br><span class="line">git <span class="built_in">log</span> --oneline origin/ym-dev..HEAD    <span class="comment"># 先看清楚本地独有的提交，这些会丢</span></span><br><span class="line">git reset --hard origin/ym-dev</span><br></pre></td></tr></table></figure>
+
+<p>无论哪种情况，**这时候都不要 <code>git pull</code>**。默认配置下它会把分叉的两段历史 merge 到一起，同一批改动在历史里出现两次，再 rebase 的时候还会冲突。</p>
+<h2 id="只想合一部分：ship-分支"><a href="#只想合一部分：ship-分支" class="headerlink" title="只想合一部分：ship 分支"></a>只想合一部分：ship 分支</h2><p>偶尔 <code>ym-dev</code> 上混着没做完的东西，但其中一两个提交急着要进 main。这时从 main 拉一个临时分支，把需要的提交 cherry-pick 过去：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">gfo</span><br><span class="line">gcb ship/fix-xxx origin/$(git_main_branch)</span><br><span class="line">git cherry-pick &lt;commit1&gt; &lt;commit2&gt;</span><br><span class="line">git push -u origin ship/fix-xxx</span><br></pre></td></tr></table></figure>
+
+<p>然后开 <code>ship/fix-xxx</code> → <code>main</code> 的 PR，合并后删掉这个分支。</p>
+<p>回到 <code>ym-dev</code> 之后照常 <code>gfo &amp;&amp; grbom &amp;&amp; gpf</code>。rebase 会发现这几个提交的改动已经在 main 里了，自动跳过，不会重复。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p>这套做法能成立，靠的是「分支独占」这个前提。它的好处都来自这里：可以随便 rebase，push 不用动脑子，历史永远干净。换到多人协作的分支上，这些好处就全变成了风险。</p>
+<p>它的代价也很明显：所有工作都在一条分支上，一个 PR 里可能混着几件不相干的事，评审的人不一定喜欢：只能整体批或整体不批，其中一件有争议，另外几件也得跟着等。PR 等得越久，我往里追加的提交越多；东西越多越难审，越难审又等得越久。我目前的解法是控制 PR 的节奏，攒到一个合适的量就开，不让它长得太大；真需要拆的时候，就用上面的 ship 分支。</p>
+<p>另一个代价是 rebase 对评审中途的 PR 不友好。这一点我一开始没想到：只盯着「C1 变成 C1’ 有没有问题」，答案是没有，就以为 rebase 没有副作用了。实际上受影响的不是 Git，而是正在看 PR 的人。所以这套做法里唯一需要动脑子的地方，就是 rebase 之前先想一下：现在有没有人在看这个 PR。</p>
+<p>最后回到那三个命令。<code>gfo</code> 拿到最新状态，<code>grbom</code> 接到最新的 main 上，<code>gpf</code> 安全地推上去。顺序不能乱，<code>grbom</code> 和 <code>gpf</code> 不能拆开，PR 评审期间先别 <code>grbom</code>。记住这三条，剩下的都是 commit。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://git-scm.com/docs/git-push">git-push: –force-with-lease, –force-if-includes</a></li>
+<li><a target="_blank" rel="noopener" href="https://git-scm.com/docs/git-rebase">git-rebase</a></li>
+<li><a target="_blank" rel="noopener" href="https://git-scm.com/docs/git-range-diff">git-range-diff</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/ohmyzsh/ohmyzsh/tree/master/plugins/git">oh-my-zsh git plugin</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/Git/" rel="tag"># Git</a>
+              <a href="/tags/oh-my-zsh/" rel="tag"># oh-my-zsh</a>
+              <a href="/tags/rebase/" rel="tag"># rebase</a>
+              <a href="/tags/GitHub/" rel="tag"># GitHub</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/08/ecs-awsvpc-eni-trunking/index.html" rel="prev" title="一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘">
+                  <i class="fa fa-angle-left"></i> 一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

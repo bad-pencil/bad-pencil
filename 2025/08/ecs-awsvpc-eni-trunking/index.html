@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起我们的 ECS 集群都是 EC2 启动类型，任务一律用 awsvpc 网络模式。 刚开始搭 dev 环境的时候就撞过一次墙：机器的 CPU、内存都还有富余，新任务却起不来，原因是 ENI 不够用了。当时的解法是打开 ECS 的 awsvpcTrunking（俗称 VPC trunk &#x2F; ENI trunking），让一台 EC2 能挂更多的网卡。代价是：这个方案不是每种机型都支持。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘">
+<meta property="og:url" content="https://ming.theyan.gs/2025/08/ecs-awsvpc-eni-trunking/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起我们的 ECS 集群都是 EC2 启动类型，任务一律用 awsvpc 网络模式。 刚开始搭 dev 环境的时候就撞过一次墙：机器的 CPU、内存都还有富余，新任务却起不来，原因是 ENI 不够用了。当时的解法是打开 ECS 的 awsvpcTrunking（俗称 VPC trunk &#x2F; ENI trunking），让一台 EC2 能挂更多的网卡。代价是：这个方案不是每种机型都支持。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-08-11T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-05T13:01:12.307Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="AWS">
+<meta property="article:tag" content="VPC">
+<meta property="article:tag" content="Terraform">
+<meta property="article:tag" content="ECS">
+<meta property="article:tag" content="ENI">
+<meta property="article:tag" content="awsvpcTrunking">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/08/ecs-awsvpc-eni-trunking/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/08/ecs-awsvpc-eni-trunking/index.html","path":"2025/08/ecs-awsvpc-eni-trunking/index.html","title":"一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E7%AE%97%E4%B8%80%E7%AC%94%E8%B4%A6%EF%BC%9Aawsvpc-%E6%A8%A1%E5%BC%8F%E4%B8%8B-ENI-%E5%B0%B1%E6%98%AF%E4%BB%BB%E5%8A%A1%E6%95%B0%E4%B8%8A%E9%99%90"><span class="nav-number">2.</span> <span class="nav-text">先算一笔账：awsvpc 模式下 ENI 就是任务数上限</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ENI-trunking-%E6%98%AF%E6%80%8E%E4%B9%88%E5%9B%9E%E4%BA%8B"><span class="nav-number">3.</span> <span class="nav-text">ENI trunking 是怎么回事</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%91%E4%BB%AC%E6%98%AF%E6%80%8E%E4%B9%88%E8%90%BD%E5%9C%B0%E7%9A%84"><span class="nav-number">4.</span> <span class="nav-text">我们是怎么落地的</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B4%A6%E5%8F%B7%E7%BA%A7%E5%BC%80%E5%85%B3"><span class="nav-number">4.1.</span> <span class="nav-text">账号级开关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%88%E5%BC%80%E5%BC%80%E5%85%B3%EF%BC%8C%E5%86%8D%E8%B5%B7%E6%9C%BA%E5%99%A8"><span class="nav-number">4.2.</span> <span class="nav-text">先开开关，再起机器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%BA%E5%9E%8B%E5%8F%98%E9%87%8F%E4%B8%8A%E5%86%99%E6%B8%85%E6%A5%9A%E7%BA%A6%E6%9D%9F"><span class="nav-number">4.3.</span> <span class="nav-text">机型变量上写清楚约束</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E6%AE%B5%E5%A4%9A%E4%BD%99%E7%9A%84-user-data"><span class="nav-number">4.4.</span> <span class="nav-text">一段多余的 user_data</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%93%AA%E4%BA%9B%E6%9C%BA%E5%9E%8B%E5%92%8C%E5%9C%BA%E6%99%AF%E4%B8%8D%E6%94%AF%E6%8C%81"><span class="nav-number">5.</span> <span class="nav-text">哪些机型和场景不支持</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A1%E6%A3%80%EF%BC%9A%E5%90%84%E7%8E%AF%E5%A2%83%E7%8E%B0%E5%9C%A8%E6%9C%89%E6%B2%A1%E6%9C%89-ENI-%E9%9A%90%E6%82%A3"><span class="nav-number">6.</span> <span class="nav-text">巡检：各环境现在有没有 ENI 隐患</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E8%B4%A6%E5%8F%B7%E5%BC%80%E5%85%B3"><span class="nav-number">6.1.</span> <span class="nav-text">1. 账号开关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%9C%BA%E5%99%A8%E4%B8%8A%E6%9C%89%E6%B2%A1%E6%9C%89-trunk"><span class="nav-number">6.2.</span> <span class="nav-text">2. 机器上有没有 trunk</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E7%94%A8%E9%87%8F%E5%92%8C%E4%B8%8A%E9%99%90"><span class="nav-number">6.3.</span> <span class="nav-text">3. 用量和上限</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E6%9E%9C"><span class="nav-number">6.4.</span> <span class="nav-text">结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8F%92%E6%9B%B2%EF%BC%9A%E5%B7%AE%E7%82%B9%E5%86%A4%E6%9E%89%E4%BA%86-ENI"><span class="nav-number">7.</span> <span class="nav-text">插曲：差点冤枉了 ENI</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">8.</span> <span class="nav-text">多说几句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">123</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">537</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/08/ecs-awsvpc-eni-trunking/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一台机器能跑几个 awsvpc 任务：ECS ENI trunking（awsvpcTrunking）复盘
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-08-12 00:00:00" itemprop="dateCreated datePublished" datetime="2025-08-12T00:00:00+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-11-05 21:01:12" itemprop="dateModified" datetime="2026-11-05T21:01:12+08:00">2026-11-05</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>我们的 ECS 集群都是 EC2 启动类型，任务一律用 <code>awsvpc</code> 网络模式。</p>
+<p>刚开始搭 dev 环境的时候就撞过一次墙：机器的 CPU、内存都还有富余，新任务却起不来，原因是 ENI 不够用了。当时的解法是打开 ECS 的 <code>awsvpcTrunking</code>（俗称 VPC trunk &#x2F; ENI trunking），让一台 EC2 能挂更多的网卡。代价是：<strong>这个方案不是每种机型都支持</strong>。</p>
+<p>半年多过去，环境从 dev 一路扩到 qa、preprod、prod，机型换了好几轮。某天下午我突然想起这件事：现在各个环境的 ECS 集群，还有没有 ENI 不够的隐患？换过的机型，还都支持 trunking 吗？</p>
+<p>巧的是，同一天下午 prod 正好有个任务卡在 <code>PROVISIONING</code> 起不来，ENI 也一度被列为头号嫌疑。这篇就把 trunking 的原理、我们怎么落地的、怎么巡检，以及那次”差点冤枉了 ENI”的排查，一起记下来。</p>
+<span id="more"></span>
+
+<h2 id="先算一笔账：awsvpc-模式下-ENI-就是任务数上限"><a href="#先算一笔账：awsvpc-模式下-ENI-就是任务数上限" class="headerlink" title="先算一笔账：awsvpc 模式下 ENI 就是任务数上限"></a>先算一笔账：awsvpc 模式下 ENI 就是任务数上限</h2><p><code>awsvpc</code> 模式下，每个任务都会拿到一块属于自己的 ENI（弹性网卡）和一个子网 IP。好处是任务可以有独立的安全组，在 VPC 里就像一台独立的机器。</p>
+<p>问题在于，一台 EC2 能挂的 ENI 数量是有硬上限的，而且<strong>主网卡也算一块</strong>。所以不开 trunking 的情况下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">单机 awsvpc 任务上限 = 机型最大 ENI 数 - 1（主网卡）</span><br></pre></td></tr></table></figure>
+
+<p>拿我们用过的机型算一下：</p>
+<table>
+<thead>
+<tr>
+<th>机型</th>
+<th>最大 ENI 数</th>
+<th>不开 trunking 的任务上限</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>m6a.xlarge</code>（4c16g）</td>
+<td>4</td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>c6a.4xlarge</code>（16c32g）</td>
+<td>8</td>
+<td>7</td>
+</tr>
+</tbody></table>
+<p>一台 4 核 16G 的机器只能跑 3 个任务，对 Java 微服务来说这是非常亏的：我们一个服务的 task 通常也就预留 256 到 1024 的 CPU，按 CPU 算一台 <code>m6a.xlarge</code> 能放十几个，按 ENI 算只能放 3 个。ENI 会比 CPU 和内存先耗尽。</p>
+<p>这就是当初 dev 撞墙的原因。</p>
+<h2 id="ENI-trunking-是怎么回事"><a href="#ENI-trunking-是怎么回事" class="headerlink" title="ENI trunking 是怎么回事"></a>ENI trunking 是怎么回事</h2><p>打开 <code>awsvpcTrunking</code> 之后，ECS 会给新启动的容器实例额外挂一块特殊的网卡，叫 <strong>trunk ENI</strong>。之后每个 <code>awsvpc</code> 任务拿到的不再是一块独立挂在实例上的普通 ENI，而是挂在 trunk 下面的 <strong>branch ENI</strong>。</p>
+<p>branch ENI 不占实例的 ENI 槽位，所以单机任务上限一下子就上去了。以 AWS 文档里的数字为准：</p>
+<table>
+<thead>
+<tr>
+<th>机型</th>
+<th>不开 trunking</th>
+<th>开 trunking</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>m6a.large</code></td>
+<td>2</td>
+<td>10</td>
+</tr>
+<tr>
+<td><code>m6a.xlarge</code></td>
+<td>3</td>
+<td>20</td>
+</tr>
+<tr>
+<td><code>c6a.4xlarge</code></td>
+<td>7</td>
+<td>60</td>
+</tr>
+<tr>
+<td><code>r6a.2xlarge</code></td>
+<td>3</td>
+<td>40</td>
+</tr>
+</tbody></table>
+<p>开了 trunking 的实例上，<code>describe-instances</code> 看到的网卡是两块：一块 <code>interface</code>（主网卡），一块 <code>trunk</code>。任务的 branch ENI 不会出现在实例的网卡列表里。</p>
+<h2 id="我们是怎么落地的"><a href="#我们是怎么落地的" class="headerlink" title="我们是怎么落地的"></a>我们是怎么落地的</h2><h3 id="账号级开关"><a href="#账号级开关" class="headerlink" title="账号级开关"></a>账号级开关</h3><p><code>awsvpcTrunking</code> 是一个 ECS 账号设置，按区域生效。我们在 Terraform 的 ECS 模块里把它设成账号默认值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># ECS account-level setting (awsvpcTrunking; must be enabled before creating instances)</span><br><span class="line">resource &quot;aws_ecs_account_setting_default&quot; &quot;awsvpc_trunking&quot; &#123;</span><br><span class="line">  name  = &quot;awsvpcTrunking&quot;</span><br><span class="line">  value = &quot;enabled&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="先开开关，再起机器"><a href="#先开开关，再起机器" class="headerlink" title="先开开关，再起机器"></a>先开开关，再起机器</h3><p>这里有一个很容易忽略的点，AWS 文档写得很直白：<strong>只有在开启 <code>awsvpcTrunking</code> 之后新启动的 EC2 实例，才会拿到 trunk ENI 和更高的上限。之前已经启动的实例，无论做什么操作都拿不到。</strong></p>
+<p>也就是说，开关打开之后，老机器要换掉才算真正生效。放到 Terraform 里，就是让 ASG 显式依赖这个账号设置，保证新建环境时一定是先开开关、再起机器：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">resource &quot;aws_autoscaling_group&quot; &quot;ecs_pool&quot; &#123;</span><br><span class="line">  for_each = var.capacity_pools</span><br><span class="line"></span><br><span class="line">  name = coalesce(each.value.asg_name, &quot;$&#123;var.cluster_name&#125;-$&#123;each.key&#125;-asg&quot;)</span><br><span class="line"></span><br><span class="line">  depends_on = [aws_ecs_account_setting_default.awsvpc_trunking]</span><br><span class="line"></span><br><span class="line">  # ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="机型变量上写清楚约束"><a href="#机型变量上写清楚约束" class="headerlink" title="机型变量上写清楚约束"></a>机型变量上写清楚约束</h3><p>因为不是每种机型都支持，所以每个环境的机型变量都在描述里写死了这条约束，换机型的人一眼就能看到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">variable &quot;instance_type&quot; &#123;</span><br><span class="line">  description = &quot;EC2 instance type for ECS instances (must support awsvpc-trunking)&quot;</span><br><span class="line">  type        = string</span><br><span class="line">  default     = &quot;m6a.large&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="一段多余的-user-data"><a href="#一段多余的-user-data" class="headerlink" title="一段多余的 user_data"></a>一段多余的 user_data</h3><p>dev 集群最早是手工建的，后来才 import 进 Terraform。当时 launch template 的 user_data 里留着这么一段注释：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 如果要同时开启 Trunking（可选，但既然账户已开启，这个是多余的）</span></span><br><span class="line"><span class="comment"># echo ECS_ENABLE_HIGH_DENSITY_ENI=true &gt;&gt; /etc/ecs/ecs.config</span></span><br></pre></td></tr></table></figure>
+
+<p>真正起作用的是账号级的 <code>awsvpcTrunking</code>，以及 ECS-optimized AMI 里足够新的 agent。这行配置在我们的场景下没有意义，后来做 SSH 加固改 user_data 的时候顺手删掉了，免得后来的人以为 trunking 是靠它开的。</p>
+<h2 id="哪些机型和场景不支持"><a href="#哪些机型和场景不支持" class="headerlink" title="哪些机型和场景不支持"></a>哪些机型和场景不支持</h2><p>“不是每种机型都支持”具体是什么意思，值得单独列一下。以下来自 AWS 文档：</p>
+<ul>
+<li><strong>整个家族都不支持的</strong>：<code>c5n</code>、<code>d3</code>、<code>d3en</code>、<code>g3</code>、<code>g3s</code>、<code>g4dn</code>、<code>i3</code>、<code>i3en</code>、<code>inf1</code>、<code>m5dn</code>、<code>m5n</code>、<code>m5zn</code>、<code>mac1</code>、<code>r5b</code>、<code>r5n</code>、<code>r5dn</code>、<code>z1d</code> 等。</li>
+<li><strong>家族支持、个别型号不支持的</strong>：比如 <code>c5.metal</code>、<code>m5.metal</code>、<code>r5.8xlarge</code>、<code>c5a.8xlarge</code> 等。</li>
+<li><strong>支持但上限明显偏低的</strong>：<code>*-flex</code> 系列。比如 <code>m7i-flex.large</code> 开了 trunking 也只有 4，<code>m7i-flex.xlarge</code> 只有 10，而同尺寸的 <code>m7i</code> 分别是 10 和 20。只看”支持”两个字，很容易踩到这里。</li>
+<li><strong>Windows 容器实例不支持。</strong> 只支持 Linux 的 ECS-optimized AMI（或满足 agent 版本要求的 Amazon Linux）。</li>
+<li><strong>共享子网（shared subnet）里的实例不支持</strong>，会注册不上集群。</li>
+<li><strong>实例要关闭基于资源名的 IPv4 DNS（A 记录）。</strong></li>
+<li>任务必须和容器实例在同一个 VPC 里。</li>
+</ul>
+<p>另外有一个安全上的细节：trunk ENI 使用的是 <strong>VPC 的默认安全组</strong>，由 ECS 管理。如果你们对默认安全组有统一的收紧策略，这里要心里有数。</p>
+<p>我们目前用的 <code>m6a</code>、<code>c6a</code>、<code>r6a</code> 都在支持列表里，上限也是正常档位。</p>
+<h2 id="巡检：各环境现在有没有-ENI-隐患"><a href="#巡检：各环境现在有没有-ENI-隐患" class="headerlink" title="巡检：各环境现在有没有 ENI 隐患"></a>巡检：各环境现在有没有 ENI 隐患</h2><p>回到开头那个问题。巡检分三步：开关有没有开、机器上有没有 trunk、用量离上限还有多远。</p>
+<h3 id="1-账号开关"><a href="#1-账号开关" class="headerlink" title="1. 账号开关"></a>1. 账号开关</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ecs list-account-settings \</span><br><span class="line">  --profile &lt;<span class="built_in">env</span>&gt; --region ap-southeast-1 \</span><br><span class="line">  --name awsvpcTrunking --effective-settings</span><br></pre></td></tr></table></figure>
+
+<p><code>value</code> 是 <code>enabled</code> 就行。注意这个设置是按账号、按区域的，每个环境都要查。</p>
+<h3 id="2-机器上有没有-trunk"><a href="#2-机器上有没有-trunk" class="headerlink" title="2. 机器上有没有 trunk"></a>2. 机器上有没有 trunk</h3><p>开关开了不代表机器上就有 trunk（还记得”只有新启动的实例才生效”吗）。要看容器实例本身：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ecs list-attributes \</span><br><span class="line">  --profile &lt;<span class="built_in">env</span>&gt; --region ap-southeast-1 \</span><br><span class="line">  --cluster &lt;cluster&gt; \</span><br><span class="line">  --target-type container-instance \</span><br><span class="line">  --attribute-name ecs.awsvpc-trunk-id</span><br></pre></td></tr></table></figure>
+
+<p>有 trunk 的实例会带上 <code>ecs.awsvpc-trunk-id</code> 属性，同时还有 <code>ecs.capability.task-eni-trunking</code> 这个 capability。再用 <code>describe-instances</code> 看一眼网卡，应该是 <code>interface</code> 加 <code>trunk</code> 两块。</p>
+<h3 id="3-用量和上限"><a href="#3-用量和上限" class="headerlink" title="3. 用量和上限"></a>3. 用量和上限</h3><p>branch ENI 可以按类型过滤出来：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager ec2 describe-network-interfaces \</span><br><span class="line">  --profile &lt;<span class="built_in">env</span>&gt; --region ap-southeast-1 \</span><br><span class="line">  --filters Name=interface-type,Values=branch \</span><br><span class="line">  --query <span class="string">&#x27;length(NetworkInterfaces)&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>branch ENI 挂在 trunk 下面，从这个接口里看不出它属于哪台实例。好在一个 <code>awsvpc</code> 任务就对应一块 branch ENI，所以按实例看用量，直接用容器实例的 <code>runningTasksCount</code> 就够了，再拿去对照文档里该机型的上限。</p>
+<h3 id="结果"><a href="#结果" class="headerlink" title="结果"></a>结果</h3><table>
+<thead>
+<tr>
+<th>环境</th>
+<th>机型 &#x2F; 节点</th>
+<th>单机最多任务数</th>
+<th>trunking 上限（每台）</th>
+<th>真正更紧的资源</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>dev</td>
+<td>1 台 <code>m6a.xlarge</code></td>
+<td>16</td>
+<td>20</td>
+<td>CPU（剩余 476 &#x2F; 4096）</td>
+</tr>
+<tr>
+<td>qa</td>
+<td>1 台 <code>m6a.xlarge</code></td>
+<td>16</td>
+<td>20</td>
+<td>CPU（剩余 476 &#x2F; 4096）</td>
+</tr>
+<tr>
+<td>preprod</td>
+<td>4 台 <code>m6a.xlarge</code></td>
+<td>9</td>
+<td>20</td>
+<td>部分节点 CPU 只剩 392</td>
+</tr>
+<tr>
+<td>prod</td>
+<td>2 台 <code>c6a.4xlarge</code></td>
+<td>15</td>
+<td>60</td>
+<td>很宽裕</td>
+</tr>
+</tbody></table>
+<p>所有环境开关都开着，所有容器实例都挂了 trunk，最近的服务事件里也没有任何网卡相关的放置失败。<strong>现在没有 ENI 问题。</strong></p>
+<p>但这张表更有意思的地方在于：dev、qa 单机跑着 16 个任务，如果没有 trunking，这台 <code>m6a.xlarge</code> 只能跑 3 个。也就是说，<strong>我们现在的机器规模，是建立在 trunking 之上的</strong>。哪天有人图便宜换了个不支持的机型，或者换成了 <code>-flex</code> 系列，dev 和 qa 会立刻有十几个任务起不来。</p>
+<p>另外，dev 和 qa 离 20 的上限只差 4 个任务。现在先顶不住的是 CPU，但如果以后把 task 的 CPU 预留调小、往一台机器上塞更多服务，ENI 上限会重新变成天花板。</p>
+<h2 id="插曲：差点冤枉了-ENI"><a href="#插曲：差点冤枉了-ENI" class="headerlink" title="插曲：差点冤枉了 ENI"></a>插曲：差点冤枉了 ENI</h2><p>同一天下午，prod 的 <code>gateway-service</code> 做了一次部署，两个新任务卡在 <code>PROVISIONING</code> 二十多分钟，<code>containerInstanceArn</code> 是空的。</p>
+<p>排查时 ENI 一度是头号嫌疑，理由听起来很充分：</p>
+<ul>
+<li>两台机器的 CPU 只用了 12%，内存 26%，资源明明够；</li>
+<li>任务是 <code>awsvpc</code> 模式，每个都要一块 branch ENI；</li>
+<li>capacity provider 的 <code>CapacityProviderReservation</code> 冲到了 160（目标 80），ECS 觉得需要 3 台多机器。</li>
+</ul>
+<p>CPU、内存都够，却还要加机器，那缺的”大概”就是 ENI 了。</p>
+<p>这个推理有一个前提是对的：<strong>ECS 容器实例的资源记账里只有 <code>CPU</code>、<code>MEMORY</code>、<code>PORTS</code>、<code>PORTS_UDP</code>，没有 ENI。</strong> 所以 <code>remainingResources</code> 里看不出 ENI 是否耗尽，”资源够却放不下”确实可能是 ENI 的问题。</p>
+<p>但嫌疑归嫌疑，要拿数字说话。逐项核对的结果是：</p>
+<ul>
+<li><strong>子网 IP</strong>：两个私有子网都是 &#x2F;18，空闲 IP 一万六千多，不是 IP 耗尽。</li>
+<li><strong>branch ENI</strong>：一共 28 块，正好对应 28 个运行中的任务；两台机器分别 15 和 13 个任务，离 <code>c6a.4xlarge</code> 的 60 很远。</li>
+<li><strong>CloudTrail</strong>：90 分钟内没有任何来自 ECS 的 <code>CreateNetworkInterface</code> 调用，也没有报错。ECS 根本没有开始给这两个任务准备网卡。</li>
+<li><strong>任务详情</strong>：<code>attachments</code> 是空数组。如果是 ENI 创建失败，这里会有一条状态异常的 attachment。</li>
+</ul>
+<p>这几条放在一起，结论就反过来了：任务根本没被放置到任何一台机器上，自然也谈不上准备网卡。ENI 被排除。</p>
+<p>真正的原因和网络无关：那次部署把服务从 <code>launchType: EC2</code> 切到了 capacity provider，而两台老机器注册进集群时的 <code>capacityProviderName</code> 是 <code>ec2</code>，不归这个 capacity provider 管，capacity provider 的任务放不上去；ASG 的 max 又是 2，加不了新机器，就这样卡住了。这是另一个故事，这里不展开。</p>
+<p>这次插曲让我记住的是：<strong>ENI 不够和”任务没被放置”在表面上长得很像</strong>，都是资源看起来够、任务却卡着。区分它们的办法，是看 ECS 有没有真的去创建网卡（CloudTrail 和任务的 attachments），而不是看指标去推理。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p><strong>第一，<code>awsvpc</code> 模式下，单机任务数先撞到的往往是 ENI，而不是 CPU 和内存。</strong> 不开 trunking，一台 4 核 16G 的机器只能跑 3 个任务。如果你的集群是 EC2 启动类型加 <code>awsvpc</code>，trunking 基本是必选项。</p>
+<p><strong>第二，开关只对新机器生效。</strong> 打开 <code>awsvpcTrunking</code> 之后，老实例无论如何都不会有 trunk，必须替换。Terraform 里让 ASG <code>depends_on</code> 这个账号设置，是一个便宜又有效的保险。</p>
+<p><strong>第三，”支持 trunking”要看两件事：在不在列表里，上限是多少。</strong> 整个家族不支持的（比如 <code>c5n</code>、<code>g4dn</code>）好避开；<code>-flex</code> 系列这种”支持但上限只有一半”的更容易踩。换机型之前，先去查那张表。</p>
+<p><strong>第四，巡检要查到实例层面。</strong> 账号开关开着，不等于每台机器都有 trunk。<code>ecs.awsvpc-trunk-id</code> 这个属性才是实例真的拿到了 trunk 的证据。</p>
+<p><strong>第五，ENI 不在 ECS 的资源记账里。</strong> 这意味着控制台和 <code>remainingResources</code> 都不会告诉你 ENI 快满了，需要自己按任务数对照上限去算。反过来，怀疑 ENI 时也要拿 branch ENI 数量、CloudTrail、任务 attachments 去证实，不要只凭”CPU 和内存都够”就下结论。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/container-instance-eni.html">Amazon ECS: Increasing Amazon ECS Linux container instance network interfaces</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/eni-trunking-supported-instance-types.html">Amazon ECS: Supported instances for increased Amazon ECS container network interfaces</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html">Amazon ECS: Amazon ECS task networking options for EC2</a></li>
+<li><a target="_blank" rel="noopener" href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_account_setting_default">Terraform: aws_ecs_account_setting_default</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AWS/" rel="tag"># AWS</a>
+              <a href="/tags/VPC/" rel="tag"># VPC</a>
+              <a href="/tags/Terraform/" rel="tag"># Terraform</a>
+              <a href="/tags/ECS/" rel="tag"># ECS</a>
+              <a href="/tags/ENI/" rel="tag"># ENI</a>
+              <a href="/tags/awsvpcTrunking/" rel="tag"># awsvpcTrunking</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/07/release-please-java-release-train/index.html" rel="prev" title="用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎">
+                  <i class="fa fa-angle-left"></i> 用 Release Please 跑 Java 微服务的发布列车：双轨部署、SNAPSHOT 门禁和依赖钉扎
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/index.html" rel="next" title="gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常">
+                  gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
