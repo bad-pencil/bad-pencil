@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next-haha.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next-haha.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next-haha.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css" integrity="sha256-4Lad8m4ZWW1Lgb9+sMVLYEfnIh7BjV1NQMEe79Pviks=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"ming.theyan.gs","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.29.1","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="缘起我们 prod 有 9 台 RDS for MySQL 主库，外加 1 台只读副本，全部用 Terraform 管。搭环境的时候，在”版本和维护”这件事上定了四条：  engine_version 只写大版本 8.4，不写小版本； 打开小版本自动升级； 主库全部开 Multi-AZ； 每台库的维护窗口互相错开。  单看每一条都是很普通的设置，当时也没多想。直到有一天被问到一句话：”prod 的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="engine_version 只写 8.4：用 Terraform 管生产 RDS for MySQL 的版本、Multi-AZ 和维护窗口">
+<meta property="og:url" content="https://ming.theyan.gs/2025/10/terraform-rds-mysql-major-pin-multi-az-maintenance-window/index.html">
+<meta property="og:site_name" content="运维烂笔头">
+<meta property="og:description" content="缘起我们 prod 有 9 台 RDS for MySQL 主库，外加 1 台只读副本，全部用 Terraform 管。搭环境的时候，在”版本和维护”这件事上定了四条：  engine_version 只写大版本 8.4，不写小版本； 打开小版本自动升级； 主库全部开 Multi-AZ； 每台库的维护窗口互相错开。  单看每一条都是很普通的设置，当时也没多想。直到有一天被问到一句话：”prod 的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-10-20T16:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-20T03:39:48.730Z">
+<meta property="article:author" content="老杨">
+<meta property="article:tag" content="AWS">
+<meta property="article:tag" content="Multi-AZ">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="RDS">
+<meta property="article:tag" content="Terraform">
+<meta property="article:tag" content="维护窗口">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://ming.theyan.gs/2025/10/terraform-rds-mysql-major-pin-multi-az-maintenance-window/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://ming.theyan.gs/2025/10/terraform-rds-mysql-major-pin-multi-az-maintenance-window/index.html","path":"2025/10/terraform-rds-mysql-major-pin-multi-az-maintenance-window/index.html","title":"engine_version 只写 8.4：用 Terraform 管生产 RDS for MySQL 的版本、Multi-AZ 和维护窗口"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>engine_version 只写 8.4：用 Terraform 管生产 RDS for MySQL 的版本、Multi-AZ 和维护窗口 | 运维烂笔头</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-106574959-2"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"UA-106574959-2","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?fdef9ded31bdb8b2dab08eddebdd5fed"></script>
+
+
+
+
+
+
+
+  
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+<!-- google adsense -->
+<script data-ad-client="ca-pub-1045025618858716" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<link rel="alternate" href="/atom.xml" title="运维烂笔头" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-search popup-trigger" aria-label="搜索" role="button">
+      <i class="fa fa-search fa-fw fa-lg"></i>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">运维烂笔头</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">一个 SA 老兵的工作日志</p>
+  </div>
+
+  <div class="site-nav-toggle" aria-label="切换导航栏" role="button">
+      <i class="fa fa-ellipsis fa-fw fa-lg"></i>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-projects"><a href="/projects" rel="section"><i class="fa fa-code fa-fw"></i>projects</a></li><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-sitemap"><a href="/sitemap.xml" rel="section"><i class="fa fa-sitemap fa-fw"></i>站点地图</a></li><li class="menu-item menu-item-commonweal"><a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  
+  <template id="search-popup-template"><div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div></template>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%98%E8%B5%B7"><span class="nav-number">1.</span> <span class="nav-text">缘起</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%88%E7%9C%8B%E5%85%A8%E8%B2%8C"><span class="nav-number">2.</span> <span class="nav-text">先看全貌</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AA%E9%94%81%E5%A4%A7%E7%89%88%E6%9C%AC%EF%BC%9Aengine-version-%E2%80%9C8-4%E2%80%9D"><span class="nav-number">3.</span> <span class="nav-text">只锁大版本：engine_version &#x3D; “8.4”</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%99-8-4-%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%8B%BF%E5%88%B0%E6%9C%80%E6%96%B0%E7%9A%84%E5%B0%8F%E7%89%88%E6%9C%AC"><span class="nav-number">3.1.</span> <span class="nav-text">写 8.4 不等于拿到最新的小版本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B0%8F%E7%89%88%E6%9C%AC%E8%87%AA%E5%8A%A8%E5%8D%87%E7%BA%A7%EF%BC%9A%E5%BC%80%E4%BA%86%E4%B9%9F%E4%B8%8D%E7%AD%89%E4%BA%8E%E8%BF%BD%E6%9C%80%E6%96%B0"><span class="nav-number">4.</span> <span class="nav-text">小版本自动升级：开了也不等于追最新</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Multi-AZ%EF%BC%9A%E7%AE%A1%E5%BE%97%E4%BA%86%E7%B3%BB%E7%BB%9F%E8%A1%A5%E4%B8%81%EF%BC%8C%E7%AE%A1%E4%B8%8D%E4%BA%86%E5%BC%95%E6%93%8E%E5%8D%87%E7%BA%A7"><span class="nav-number">5.</span> <span class="nav-text">Multi-AZ：管得了系统补丁，管不了引擎升级</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%99%E5%BC%80%E7%BB%B4%E6%8A%A4%E7%AA%97%E5%8F%A3"><span class="nav-number">6.</span> <span class="nav-text">错开维护窗口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%B4%E6%8A%A4%E7%AA%97%E5%8F%A3%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">6.1.</span> <span class="nav-text">维护窗口是什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E9%94%99%E5%BC%80"><span class="nav-number">6.2.</span> <span class="nav-text">为什么要错开</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%88%91%E4%BB%AC%E7%9A%84%E6%8E%92%E6%B3%95"><span class="nav-number">6.3.</span> <span class="nav-text">我们的排法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%B4%E6%8A%A4%E7%AA%97%E5%8F%A3%E4%B8%8D%E8%83%BD%E5%8D%95%E7%8B%AC%E6%8E%92%EF%BC%8C%E8%A6%81%E5%92%8C%E5%A4%87%E4%BB%BD%E4%B8%80%E8%B5%B7%E6%8E%92"><span class="nav-number">6.4.</span> <span class="nav-text">维护窗口不能单独排，要和备份一起排</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%B9%E6%A1%88%E8%A2%AB%E5%90%A6%E4%BA%86%EF%BC%9A%E4%B8%A4%E5%A5%97%E6%96%B9%E6%A1%88%E7%9A%84%E5%AF%B9%E6%AF%94"><span class="nav-number">7.</span> <span class="nav-text">方案被否了：两套方案的对比</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E5%A5%97%E6%96%B9%E6%A1%88%E5%85%B6%E5%AE%9E%E5%8F%AA%E5%B7%AE%E4%B8%80%E4%B8%AA%E5%BC%80%E5%85%B3"><span class="nav-number">7.1.</span> <span class="nav-text">两套方案其实只差一个开关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%86%E5%AF%BC%E7%9A%84%E6%96%B9%E6%A1%88%E7%AB%99%E5%BE%97%E4%BD%8F%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-number">7.2.</span> <span class="nav-text">领导的方案站得住的地方</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%88%91%E7%9A%84%E6%96%B9%E6%A1%88%E7%AB%99%E5%BE%97%E4%BD%8F%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-number">7.3.</span> <span class="nav-text">我的方案站得住的地方</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E5%90%8E%E6%8C%89%E9%A2%86%E5%AF%BC%E7%9A%84%E6%96%B9%E6%A1%88%E8%90%BD%E5%9C%B0"><span class="nav-number">7.4.</span> <span class="nav-text">最后按领导的方案落地</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%81%E6%AD%BB%E4%B9%8B%E5%90%8E%EF%BC%8C%E8%BF%98%E6%9C%89%E4%BB%80%E4%B9%88%E6%98%AF%E9%94%81%E4%B8%8D%E4%BD%8F%E7%9A%84"><span class="nav-number">7.5.</span> <span class="nav-text">锁死之后，还有什么是锁不住的</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%A2%86%E5%AF%BC%E7%9A%84%E6%96%B9%E6%A1%88%E6%9C%89%E4%B8%A4%E7%A7%8D%E5%AE%9E%E7%8E%B0"><span class="nav-number">7.6.</span> <span class="nav-text">领导的方案有两种实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%8E%E4%B9%88%E9%80%89"><span class="nav-number">7.7.</span> <span class="nav-text">怎么选</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A%E8%AF%B4%E5%87%A0%E5%8F%A5"><span class="nav-number">8.</span> <span class="nav-text">多说几句</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">9.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">老杨</p>
+  <div class="site-description" itemprop="description">好记性比不过烂笔头</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">124</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">539</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/haw-haw" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;haw-haw" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:blog@theyan.gs" title="E-Mail → mailto:blog@theyan.gs" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://weibo.com/u/1494877243" title="Weibo → https:&#x2F;&#x2F;weibo.com&#x2F;u&#x2F;1494877243" rel="noopener me" target="_blank"><i class="fab fa-weibo fa-fw"></i>Weibo</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/6fool" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;6fool" rel="noopener me" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="https://bad-pencil.github.io/" title="https:&#x2F;&#x2F;bad-pencil.github.io" rel="noopener" target="_blank">github 镜像站</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://hawhaw.gitee.io/" title="https:&#x2F;&#x2F;hawhaw.gitee.io" rel="noopener" target="_blank">gitee 镜像站</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://ming.theyan.gs/2025/10/terraform-rds-mysql-major-pin-multi-az-maintenance-window/index.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="老杨">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="运维烂笔头">
+      <meta itemprop="description" content="好记性比不过烂笔头">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="engine_version 只写 8.4：用 Terraform 管生产 RDS for MySQL 的版本、Multi-AZ 和维护窗口 | 运维烂笔头">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          engine_version 只写 8.4：用 Terraform 管生产 RDS for MySQL 的版本、Multi-AZ 和维护窗口
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-10-21 00:00:00" itemprop="dateCreated datePublished" datetime="2025-10-21T00:00:00+08:00">2025-10-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2026-11-20 11:39:48" itemprop="dateModified" datetime="2026-11-20T11:39:48+08:00">2026-11-20</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="缘起"><a href="#缘起" class="headerlink" title="缘起"></a>缘起</h2><p>我们 prod 有 9 台 RDS for MySQL 主库，外加 1 台只读副本，全部用 Terraform 管。搭环境的时候，在”版本和维护”这件事上定了四条：</p>
+<ol>
+<li><code>engine_version</code> 只写大版本 <code>8.4</code>，不写小版本；</li>
+<li>打开小版本自动升级；</li>
+<li>主库全部开 Multi-AZ；</li>
+<li>每台库的维护窗口互相错开。</li>
+</ol>
+<p>单看每一条都是很普通的设置，当时也没多想。直到有一天被问到一句话：”prod 的 RDS 会不会自己重启？”</p>
+<p>为了回答这个问题，我把这四条对着文档和线上状态重新过了一遍，才发现它们是互相咬合的，而且有几处和我原先以为的不一样：写 <code>8.4</code> 并不保证拿到最新的小版本；开了自动升级也不等于紧跟最新版；Multi-AZ 挡不住小版本升级时的停机。</p>
+<p>这篇把这四条各自解决什么问题、Terraform 里怎么写、哪里容易想当然，一起记下来。最后还有一段后续：这套方案后来被领导否了，prod 改成了版本锁死、手工升级。两套方案的对比也写在里面。</p>
+<span id="more"></span>
+
+<h2 id="先看全貌"><a href="#先看全貌" class="headerlink" title="先看全貌"></a>先看全貌</h2><p>我们的 RDS 是在社区模块 <code>terraform-aws-modules/rds/aws</code> 外面包了一层自己的模块。每个环境的 stack 里放一份默认值，各实例只写自己不一样的部分。和这篇有关的内容，精简之后是这样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">locals &#123;</span><br><span class="line">  rds_defaults = &#123;</span><br><span class="line">    engine               = &quot;mysql&quot;</span><br><span class="line">    engine_version       = &quot;8.4&quot; # major version only</span><br><span class="line">    family               = &quot;mysql8.4&quot;</span><br><span class="line">    major_engine_version = &quot;8.4&quot;</span><br><span class="line"></span><br><span class="line">    multi_az = true</span><br><span class="line"></span><br><span class="line">    backup_retention_period = 35</span><br><span class="line">    deletion_protection     = true</span><br><span class="line">    apply_immediately       = true</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">module &quot;rds&quot; &#123;</span><br><span class="line">  source = &quot;../../../modules/rds&quot;</span><br><span class="line"></span><br><span class="line">  databases = &#123;</span><br><span class="line">    for name, config in var.rds_instances : name =&gt; merge(</span><br><span class="line">      local.rds_defaults,</span><br><span class="line">      &#123; for k, v in config : k =&gt; v if v != null &#125;,</span><br><span class="line">      &#123; identifier = name &#125;,</span><br><span class="line">    )</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>和升级有关的两个开关，最初是写在我们自己那层模块里的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># Maintenance</span><br><span class="line">maintenance_window          = each.value.maintenance_window</span><br><span class="line">auto_minor_version_upgrade  = true</span><br><span class="line">apply_immediately           = lookup(each.value, &quot;apply_immediately&quot;, false)</span><br><span class="line">allow_major_version_upgrade = lookup(each.value, &quot;allow_major_version_upgrade&quot;, false)</span><br></pre></td></tr></table></figure>
+
+<p>维护窗口和备份窗口每台实例都不一样，写在 <code>terraform.tfvars</code> 里，后面会讲到。</p>
+<h2 id="只锁大版本：engine-version-“8-4”"><a href="#只锁大版本：engine-version-“8-4”" class="headerlink" title="只锁大版本：engine_version &#x3D; “8.4”"></a>只锁大版本：engine_version &#x3D; “8.4”</h2><p>先说为什么不把小版本写死。</p>
+<p>如果写成 <code>engine_version = &quot;8.4.9&quot;</code>，同时又开着自动升级，那么 AWS 哪天把实例升到了更新的小版本，Terraform 就会认为线上和代码不一致，plan 里出现一条想把版本改回 <code>8.4.9</code> 的变更。RDS 不支持降级，这条变更 apply 不下去，只能回头改代码去追 AWS 的版本。每升一次，追一次。</p>
+<p>AWS provider 对这个场景有专门的支持，<code>aws_db_instance</code> 的文档是这么写的：</p>
+<blockquote>
+<p>If <code>auto_minor_version_upgrade</code> is enabled, you can provide a prefix of the version such as <code>8.0</code> (for <code>8.0.36</code>). The actual engine version used is returned in the attribute <code>engine_version_actual</code>.</p>
+</blockquote>
+<p>也就是说，<code>engine_version</code> 可以只写一个前缀，实际跑的版本记在另一个属性里。我们 prod 的 state 里是这样的：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">engine_version        = &quot;8.4&quot;</span><br><span class="line">engine_version_actual = &quot;8.4.9&quot;</span><br></pre></td></tr></table></figure>
+
+<p>分工很清楚：代码声明”我要 8.4 这条线”，具体跑在哪个小版本由 <code>engine_version_actual</code> 记录。实例实际跑在 <code>8.4.9</code> 上，<code>terraform plan</code> 是 No changes；小版本以后再变，变的也只是 <code>engine_version_actual</code>。</p>
+<p>大版本这一头也要锁住，靠的是另外三处：</p>
+<ul>
+<li><code>allow_major_version_upgrade</code> 保持 <code>false</code>。大版本升级本来就必须手工发起，这个开关再加一道保险：有人手滑把 <code>8.4</code> 改成更高的大版本，API 会直接拒绝。</li>
+<li><code>family = &quot;mysql8.4&quot;</code> 决定参数组属于哪个大版本。</li>
+<li><code>major_engine_version = &quot;8.4&quot;</code> 决定选项组属于哪个大版本。</li>
+</ul>
+<p>将来真要升大版本，这几处要一起改，那是一次单独的、有计划的变更。</p>
+<h3 id="写-8-4-不等于拿到最新的小版本"><a href="#写-8-4-不等于拿到最新的小版本" class="headerlink" title="写 8.4 不等于拿到最新的小版本"></a>写 8.4 不等于拿到最新的小版本</h3><p>这是第一处和我原先以为的不一样的地方。我本来的想法是：只写大版本，首次创建时 AWS 自然会给最新的小版本。</p>
+<p>实际上只写大版本时，RDS 用的是这个大版本的<strong>默认小版本</strong>，它往往比最新版落后一两个版本。可以这样查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager rds describe-db-engine-versions \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --engine mysql --engine-version 8.4 --default-only \</span><br><span class="line">  --query <span class="string">&#x27;DBEngineVersions[].EngineVersion&#x27;</span> --output text</span><br></pre></td></tr></table></figure>
+
+<p>写这篇的时候，我们所在的区域返回的是 <code>8.4.11</code>，而同一区域已经能选到 <code>8.4.13</code>。</p>
+<p>如果新建实例时一定要某个小版本，就在创建时显式指定，或者建好之后手工升一次。只写大版本这个写法解决的是 plan 不漂移的问题，不是版本够不够新的问题。</p>
+<h2 id="小版本自动升级：开了也不等于追最新"><a href="#小版本自动升级：开了也不等于追最新" class="headerlink" title="小版本自动升级：开了也不等于追最新"></a>小版本自动升级：开了也不等于追最新</h2><p><code>auto_minor_version_upgrade</code> 在 provider 里默认就是 <code>true</code>，我们在模块里显式写了出来。</p>
+<p>它的机制，AWS 文档讲得比较细，要点是这几条：</p>
+<ul>
+<li>生效有两个条件：开关打开，并且备份保留期大于 0。</li>
+<li>不是每出一个新的小版本就升。RDS 会在某个大版本下<strong>指定一个小版本</strong>作为自动升级的目标，指定之前要看已知安全问题、MySQL 社区版的 bug、这个版本发布以来整体的稳定性。</li>
+<li>升级发生在实例自己的维护窗口里。</li>
+<li>升级有停机。</li>
+</ul>
+<p>一个小版本是不是自动升级目标，可以查出来：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager rds describe-db-engine-versions \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --engine mysql --engine-version 8.4.9 \</span><br><span class="line">  --query <span class="string">&#x27;DBEngineVersions[].ValidUpgradeTarget[].&#123;version:EngineVersion,auto:AutoUpgrade&#125;&#x27;</span> \</span><br><span class="line">  --output table</span><br></pre></td></tr></table></figure>
+
+<p>写这篇时的结果：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">--------------------------</span><br><span class="line">|DescribeDBEngineVersions|</span><br><span class="line">+----------+-------------+</span><br><span class="line">|   auto   |   version   |</span><br><span class="line">+----------+-------------+</span><br><span class="line">|  False   |  8.4.10     |</span><br><span class="line">|  False   |  8.4.11     |</span><br><span class="line">|  False   |  8.4.13     |</span><br><span class="line">+----------+-------------+</span><br></pre></td></tr></table></figure>
+
+<p>从 <code>8.4.9</code> 往上有三个可升级的版本，但没有一个被标成自动升级目标。这和我们非生产环境的现状对得上：dev、qa 一直开着自动升级，现在分别还停在 <code>8.4.8</code> 和 <code>8.4.9</code>。</p>
+<p>所以这是第二处要纠正的理解。”自动小版本升级”的意思是：AWS 认为某个版本该升的时候，在你的维护窗口里替你升。它不是”永远跟着最新版跑”。文档里也有一句原话：</p>
+<blockquote>
+<p>Automatic minor version upgrades periodically update your database to recent database engine versions. However, the upgrade might not always include the latest database engine version.</p>
+</blockquote>
+<p>那为什么还要开？因为小版本里主要是安全补丁和缺陷修复，AWS 的建议一直是打开：RDS FAQ 建议把实例保持在较新的小版本；AWS Config 有一条托管规则 <code>rds-automatic-minor-version-upgrade-enabled</code>，开关为 false 就判不合规；Checkov 里对应的是 <code>CKV_AWS_226</code>。配合上一节的”只锁大版本”，开着它也不会给 Terraform 带来任何漂移。</p>
+<h2 id="Multi-AZ：管得了系统补丁，管不了引擎升级"><a href="#Multi-AZ：管得了系统补丁，管不了引擎升级" class="headerlink" title="Multi-AZ：管得了系统补丁，管不了引擎升级"></a>Multi-AZ：管得了系统补丁，管不了引擎升级</h2><p><code>multi_az = true</code> 写在默认值里，9 台主库全部生效。只读副本是单可用区，在它自己的配置里覆盖成 <code>false</code>。</p>
+<p>Multi-AZ 平时的价值不用多说。我们 preprod 有一台库，某天中午主库无响应，RDS 自己切到了备库，全程没有人工介入。</p>
+<p>和这篇有关的是另一个问题：<strong>维护的时候，Multi-AZ 能把停机降到多少？</strong> 这是第三处，也是我误会最深的一处。我原先以为不管哪种维护，都是”先动备库，切换，再动原主库”，应用只感觉到一次短暂断连。</p>
+<p>对着文档看，要分两种情况：</p>
+<table>
+<thead>
+<tr>
+<th>维护类型</th>
+<th>Multi-AZ 实例上的过程</th>
+<th>应用侧看到的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>操作系统更新</td>
+<td>先更新备库，把备库提升为主库，再更新原主库</td>
+<td>一次故障转移，通常不到一分钟</td>
+</tr>
+<tr>
+<td>数据库引擎升级（包括小版本）</td>
+<td>主库和备库<strong>同时</strong>升级</td>
+<td>升级完成之前，实例不可用</td>
+</tr>
+</tbody></table>
+<p>文档原话：</p>
+<blockquote>
+<p>If you upgrade the database engine for your DB instance in a Multi-AZ deployment, Amazon RDS modifies both primary and secondary DB instances at the same time. In this case, both the primary and secondary DB instances in the Multi-AZ deployment are unavailable during the upgrade.</p>
+</blockquote>
+<p>RDS for MySQL 的升级文档里还有一句更直接的：Multi-AZ 实例做一次小版本升级，停机可能持续几分钟。</p>
+<p>所以对 MySQL 来说，开了 Multi-AZ，小版本自动升级仍然是一次真实的停机，而不是一次切换。想进一步缩短，文档给的方向是 Blue&#x2F;Green Deployments，那是另一个话题。</p>
+<p>这个结论直接影响下一节：既然每一次引擎升级都是几分钟的不可用，那它发生在什么时候、会不会好几台库一起发生，就必须认真安排。</p>
+<h2 id="错开维护窗口"><a href="#错开维护窗口" class="headerlink" title="错开维护窗口"></a>错开维护窗口</h2><h3 id="维护窗口是什么"><a href="#维护窗口是什么" class="headerlink" title="维护窗口是什么"></a>维护窗口是什么</h3><p>每台 RDS 实例有一个每周一次的维护窗口，格式是 <code>ddd:hh24:mi-ddd:hh24:mi</code>，时间是 UTC，最短 30 分钟。不指定的话，AWS 会在区域对应的时间段里随机挑一天、挑 30 分钟。</p>
+<p>有一点容易误会：<strong>窗口到了，不代表一定会发生什么。</strong> 只有实例上有待处理的维护（小版本升级、系统更新等）时，AWS 才会在窗口里动手。有没有待处理的维护，可以随时查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager rds describe-pending-maintenance-actions \</span><br><span class="line">  --profile prod --region ap-southeast-1</span><br></pre></td></tr></table></figure>
+
+<h3 id="为什么要错开"><a href="#为什么要错开" class="headerlink" title="为什么要错开"></a>为什么要错开</h3><p>如果 9 台主库用同一个窗口，那么某个小版本被指定为自动升级目标的那一周，9 台库会在同一个小时里各停几分钟。更糟的情况是这个小版本和我们的业务有兼容问题，那就是 9 台库同一晚一起出事，没有任何缓冲。</p>
+<p>错开之后，每晚最多动一两台。第一台升完如果有问题，只影响一个业务域，后面几台还来得及处理。</p>
+<h3 id="我们的排法"><a href="#我们的排法" class="headerlink" title="我们的排法"></a>我们的排法</h3><p>一周七天，每天第一档放一台主库；多出来的实例放第二档，比第一档晚一小时；只读副本和它的主库同一天，排在第二档。</p>
+<table>
+<thead>
+<tr>
+<th>实例</th>
+<th>维护窗口（UTC）</th>
+<th>本地时间（UTC+8）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>prod-mysql05-partner-master</code></td>
+<td><code>mon:16:00-mon:17:00</code></td>
+<td>周二 00:00-01:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql03-cashflow-master</code></td>
+<td><code>tue:16:00-tue:17:00</code></td>
+<td>周三 00:00-01:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql09-infra-master</code></td>
+<td><code>tue:17:00-tue:18:00</code></td>
+<td>周三 01:00-02:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql01-account-master</code></td>
+<td><code>wed:16:00-wed:17:00</code></td>
+<td>周四 00:00-01:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql06-simulation-master</code></td>
+<td><code>wed:17:00-wed:18:00</code></td>
+<td>周四 01:00-02:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql08-workflow-master</code></td>
+<td><code>thu:16:00-thu:17:00</code></td>
+<td>周五 00:00-01:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql04-loan-master</code></td>
+<td><code>fri:16:00-fri:17:00</code></td>
+<td>周六 00:00-01:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql04-loan-read01</code></td>
+<td><code>fri:17:00-fri:18:00</code></td>
+<td>周六 01:00-02:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql02-auth-master</code></td>
+<td><code>sat:16:00-sat:17:00</code></td>
+<td>周日 00:00-01:00</td>
+</tr>
+<tr>
+<td><code>prod-mysql07-warehouse-master</code></td>
+<td><code>sun:16:00-sun:17:00</code></td>
+<td>周一 00:00-01:00</td>
+</tr>
+</tbody></table>
+<p>Terraform 里就是每台实例各写一行，把本地时间写进注释。UTC 的周几和本地的周几差一天，不写注释的话，过两个月自己都要重新算：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">rds_instances = &#123;</span><br><span class="line">  &quot;prod-mysql01-account-master&quot; = &#123;</span><br><span class="line">    backup_window      = &quot;22:00-23:00&quot;         # UTC+8 06:00-07:00</span><br><span class="line">    maintenance_window = &quot;wed:16:00-wed:17:00&quot; # UTC+8 00:00-01:00 (Thu)</span><br><span class="line">  &#125;</span><br><span class="line">  &quot;prod-mysql06-simulation-master&quot; = &#123;</span><br><span class="line">    backup_window      = &quot;22:30-23:30&quot;         # UTC+8 06:30-07:30</span><br><span class="line">    # Wed slot 2: staggered 1h after account on the same weekday</span><br><span class="line">    maintenance_window = &quot;wed:17:00-wed:18:00&quot; # UTC+8 01:00-02:00 (Thu)</span><br><span class="line">  &#125;</span><br><span class="line">  # ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>改 <code>maintenance_window</code> 是就地修改，不会重启实例，也不会重建。</p>
+<h3 id="维护窗口不能单独排，要和备份一起排"><a href="#维护窗口不能单独排，要和备份一起排" class="headerlink" title="维护窗口不能单独排，要和备份一起排"></a>维护窗口不能单独排，要和备份一起排</h3><p>这是排窗口时最花时间的地方。一台 RDS 实例在夜里其实有三件事要做，它们互相不能撞：</p>
+<ol>
+<li><strong>维护窗口。</strong></li>
+<li><strong>RDS 自动备份窗口</strong>（<code>backup_window</code>）。它和维护窗口不能重叠，重叠的话 API 直接拒绝。</li>
+<li><strong>AWS Backup 的跨区备份。</strong> 我们用 AWS Backup 每天给 RDS 打快照，再拷贝到另一个区域做灾备。这个任务如果落在维护窗口或自动备份窗口里面，或者离它们太近，会直接启动失败，报错是 <code>Backup job could not start because it is either inside or too close to the weekly maintenance window configured in RDS instance</code>。</li>
+</ol>
+<p>AWS Backup 这边还有两个时间参数。<code>start_window</code> 是任务允许晚多久启动，最小只能设 60 分钟；<code>completion_window</code> 是任务必须在多久之内完成。所以一个定在 18:00 的任务，最晚可能 19:00 才真正开始。按我们的经验，实例上的本地快照要 20 到 40 分钟，跨区拷贝除第一次之外只要几分钟。</p>
+<p>把三件事排在一条时间线上，就是现在的样子：</p>
+<table>
+<thead>
+<tr>
+<th>时间（UTC）</th>
+<th>本地时间（UTC+8）</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>16:00-18:00</td>
+<td>00:00-02:00</td>
+<td>维护窗口，每晚最多两台，各占一小时</td>
+</tr>
+<tr>
+<td>18:00 起</td>
+<td>02:00 起</td>
+<td>AWS Backup 跨区备份，<code>start_window</code> 60 分钟，<code>completion_window</code> 180 分钟</td>
+</tr>
+<tr>
+<td>21:30 到次日 00:30</td>
+<td>05:30-08:30</td>
+<td>RDS 自动备份，各实例之间再错开</td>
+</tr>
+</tbody></table>
+<p>这三段的顺序不是一开始就排对的。最早维护窗口在 19:00-21:00 UTC，跨区备份在 16:30 UTC。后来有需求要把跨区备份改到 18:00，一算就发现不行：18:00 触发，最晚 19:00 启动，再加上几十分钟的快照时间，正好压在所有实例的维护窗口上。最后的做法是把全部维护窗口整体前移 3 小时，挪到备份之前，同时确认了本地时间 00:00-02:00 没有依赖数据库的批处理任务。</p>
+<p>这次调整让我意识到，维护窗口从来不是一个可以单独决定的参数。动备份时间之前，要先看维护窗口；反过来也一样。我们现在把这条约束直接写在 <code>terraform.tfvars</code> 的注释里：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># Cross-region AWS Backup: daily 18:00 UTC, start_window 60min,</span><br><span class="line"># completion_window 180min (may run until 21:00 UTC). Maintenance windows</span><br><span class="line"># must end before 18:00 UTC and RDS automated backup_window must start &gt;= 21:30 UTC.</span><br></pre></td></tr></table></figure>
+
+<h2 id="方案被否了：两套方案的对比"><a href="#方案被否了：两套方案的对比" class="headerlink" title="方案被否了：两套方案的对比"></a>方案被否了：两套方案的对比</h2><p>回到开头那个问题：prod 的 RDS 会不会自己重启？</p>
+<p>按上面的配置，答案是：平时不会，但只要 AWS 指定了新的自动升级目标，就会在那台实例的维护窗口里升级，并且停机几分钟。星期几、几点是我们定的，但哪一周发生、升到哪个版本，是 AWS 定的。</p>
+<p>前面这四条是我定的方案，其中打开小版本自动升级是 AWS 官方明确推荐的做法。它上线跑了一段时间之后，被领导否了。他的要求是两句话：</p>
+<ol>
+<li>生产环境的版本要锁死；</li>
+<li>小版本升级和操作系统升级，都在维护窗口里手工做。</li>
+</ol>
+<p>背后的考虑是变更管控：生产数据库在我们事先不知情的情况下重启，本身就是一个要解释的事件，不管它是不是发生在凌晨、是不是只有几分钟。</p>
+<p>有一点要先说明：打开小版本自动升级，本身也是风控的要求。我们用 Checkov 扫描 Terraform 代码，其中的 <code>CKV_AWS_226</code> 要求 RDS 实例必须打开这个开关。所以这不是”要不要风控”的分歧，而是风控里的两条要求撞在了一起：一条要补丁及时，一条要变更可控。</p>
+<p>被否之后，我把两套方案放在一起认真比了一遍。</p>
+<h3 id="两套方案其实只差一个开关"><a href="#两套方案其实只差一个开关" class="headerlink" title="两套方案其实只差一个开关"></a>两套方案其实只差一个开关</h3><p>先说一个容易忽略的事实：这两套方案的差别比听上去小得多。</p>
+<p>Multi-AZ 和错开维护窗口，两边都保留。操作系统更新在两套方案里的处理方式也完全一样：可选更新 AWS 不会自动安装，只能手工；强制更新到了截止日期，AWS 会在维护窗口里自动安装。也就是说，领导要求的”操作系统升级手工做”，在我原来的方案里本来就是如此，自动小版本升级这个开关管不到操作系统。</p>
+<p>真正的差别只有一处：<strong>数据库引擎的小版本，由谁来触发升级。</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>我的方案：自动升级（AWS 官方推荐）</th>
+<th>领导的方案：锁死，手工升级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>哪一周升、升到哪个版本</td>
+<td>AWS 决定，我们只定了星期几和几点</td>
+<td>我们自己决定</td>
+</tr>
+<tr>
+<td>prod 的版本是否先在 preprod 验证过</td>
+<td>不保证</td>
+<td>可以保证：先 preprod，再 prod，升到同一个版本</td>
+</tr>
+<tr>
+<td>升级时有没有人在场</td>
+<td>没有，半夜无人值守</td>
+<td>有，可以先打快照，升完做验证</td>
+</tr>
+<tr>
+<td>变更记录</td>
+<td>事后才从 RDS 事件里知道</td>
+<td>事前有变更单，每次重启都是自己发起的</td>
+</tr>
+<tr>
+<td>补丁及时性</td>
+<td>有 AWS 兜底，但很保守</td>
+<td>完全取决于有没有人排期</td>
+</tr>
+<tr>
+<td>运维成本</td>
+<td>接近零</td>
+<td>每台实例都要有人看通知、排期、夜里执行</td>
+</tr>
+<tr>
+<td>合规扫描</td>
+<td><code>CKV_AWS_226</code>、AWS Config 规则默认通过</td>
+<td>不通过，要跳过这条检查并写明原因</td>
+</tr>
+<tr>
+<td><code>engine_version</code> 的写法</td>
+<td>只写大版本 <code>8.4</code></td>
+<td>只写大版本或写死完整版本号，对应后面的两种实现</td>
+</tr>
+<tr>
+<td>升级时的停机</td>
+<td>主备同时升级，几分钟不可用</td>
+<td>相同</td>
+</tr>
+</tbody></table>
+<h3 id="领导的方案站得住的地方"><a href="#领导的方案站得住的地方" class="headerlink" title="领导的方案站得住的地方"></a>领导的方案站得住的地方</h3><p><strong>版本一致性。</strong> 自动升级加上错开窗口，意味着升级那一周里各台实例的小版本是不一致的。而且 prod 和 preprod 各有各的维护窗口，谁的窗口先到谁先升，同一类库完全可能是 prod 先升。”生产上跑的版本，一定是先在预发验证过的版本”，在我的方案里没有任何保证。</p>
+<p><strong>有人在场。</strong> RDS 不支持降级。半夜无人值守地升上去，如果新版本和业务有兼容问题，要到第二天早上才有人发现，而且退不回去。手工升级至少可以先打快照，升完当场验证。</p>
+<p><strong>变更可追溯。</strong> 每一次重启都能对应到一张事先提交的变更单，而不是事后去翻 RDS 事件解释”这是 AWS 升的”。</p>
+<h3 id="我的方案站得住的地方"><a href="#我的方案站得住的地方" class="headerlink" title="我的方案站得住的地方"></a>我的方案站得住的地方</h3><p><strong>它是 AWS 官方推荐的做法。</strong> 这不是我个人的偏好。AWS 数据库博客里关于 RDS for MySQL 安全实践的那篇，原话是：</p>
+<blockquote>
+<p>It’s recommended to enable the Auto minor version upgrade flag for your RDS instances and configure your maintenance window accordingly to stay up to date with the latest fixes.</p>
+</blockquote>
+<p>打开自动升级，再用维护窗口控制它发生的时间，正是前面那四条在做的事。AWS Config 的托管规则和 Checkov 的 <code>CKV_AWS_226</code> 也都把”没有打开自动小版本升级”当作不合规。</p>
+<p><strong>它也是风控的要求。</strong> Checkov 的这条检查要求开关必须打开。按我的方案，扫描直接通过，不需要任何例外。</p>
+<p><strong>有兜底，而且不花人力。</strong> 没有人需要记得”该升级了”。</p>
+<p><strong>锁死方案最大的风险是没人管。</strong> 这不是理论上的担心。写这篇的时候，prod 的 9 台主库都还在 <code>8.4.9</code>，而区域的默认小版本已经是 <code>8.4.11</code>，最新是 <code>8.4.13</code>；每台实例上还挂着一条可选的操作系统更新，一直没有装。锁死之后，这些差距不会自己消失。</p>
+<p>不过公平地说，我的方案在补丁及时性上的优势，目前也只停留在纸面上：前面查过，现在没有任何一个 8.4.x 被标成自动升级目标，一直开着自动升级的 dev 还停在 <code>8.4.8</code>。</p>
+<h3 id="最后按领导的方案落地"><a href="#最后按领导的方案落地" class="headerlink" title="最后按领导的方案落地"></a>最后按领导的方案落地</h3><p>prod 把自动小版本升级关掉了；preprod 后来为了和 prod 保持一致也关了，dev、qa 保持打开。改动有三步。</p>
+<p>第一步，把模块里写死的 <code>true</code> 改成可配置，默认值不变，这样其他环境不产生任何 diff：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># variables.tf, inside the databases object type</span><br><span class="line"># Set false to pin the minor engine version (e.g. prod); defaults to AWS-managed minor upgrades.</span><br><span class="line">auto_minor_version_upgrade = optional(bool, true)</span><br><span class="line"></span><br><span class="line"># main.tf</span><br><span class="line">auto_minor_version_upgrade = each.value.auto_minor_version_upgrade</span><br></pre></td></tr></table></figure>
+
+<p>第二步，prod 的默认值里显式关掉：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># Pin minor engine version in prod; upgrades are planned and applied explicitly.</span><br><span class="line">auto_minor_version_upgrade = false</span><br></pre></td></tr></table></figure>
+
+<p>plan 出来全部是就地修改，不重启、不重建。<code>engine_version</code> 仍然写 <code>8.4</code>，关掉之后 plan 里也没有出现过版本相关的漂移。</p>
+<p>第三步，在 <code>.checkov.yaml</code> 里跳过 <code>CKV_AWS_226</code>，并且把原因写清楚。跳过一条安全检查而不写原因，半年后没人知道这是有意为之还是漏了：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">skip-check:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">CKV_AWS_226</span>  <span class="comment"># Ensure DB instance gets all minor upgrades automatically</span></span><br><span class="line">                 <span class="comment"># Intentionally disabled on prod RDS (auto_minor_version_upgrade = false in</span></span><br><span class="line">                 <span class="comment"># environments/prod/03-data). AWS applies minor upgrades during the maintenance</span></span><br><span class="line">                 <span class="comment"># window with a restart and no rollback; prod minor/CU upgrades are planned,</span></span><br><span class="line">                 <span class="comment"># tested in preprod, and applied explicitly via Terraform engine_version changes.</span></span><br><span class="line">                 <span class="comment"># Non-prod environments keep the module default (true).</span></span><br></pre></td></tr></table></figure>
+
+<p>这一步要说得直白一点：跳过检查只是让扫描不再报错，检查背后的要求并没有消失。它要的是数据库及时打上小版本补丁；关掉开关之后，这件事从 AWS 身上转到了我们自己身上。</p>
+<p>另外，<code>.checkov.yaml</code> 里的 <code>skip-check</code> 对整次扫描生效，不区分环境。跳过之后，dev、qa 如果哪天被误关了自动升级，Checkov 也不会再报。</p>
+<h3 id="锁死之后，还有什么是锁不住的"><a href="#锁死之后，还有什么是锁不住的" class="headerlink" title="锁死之后，还有什么是锁不住的"></a>锁死之后，还有什么是锁不住的</h3><p>“版本锁死”做不到绝对。关掉这个开关，并不等于实例从此不会被 AWS 动。至少还有两类：</p>
+<p><strong>操作系统更新。</strong> 这是 RDS 主机操作系统的补丁，和引擎版本无关，没有开关可以关。它分两种：可选更新不会自动安装；强制更新带一个截止日期，过了日期，RDS 会在维护窗口里自动安装。Multi-AZ 实例上表现为一次故障转移。</p>
+<p><strong>安全问题和版本到期。</strong> 文档写得很明确：遇到严重安全问题，或者某个版本到了支持终止日期，即使没有打开自动小版本升级，RDS 也会升级。</p>
+<p>所以锁死方案实际能做到的，是”我们先手”：赶在 AWS 强制执行之前，自己挑时间做掉。维护窗口和 Multi-AZ 这两条也没有因此失去意义，它们仍然决定了这些”锁不住的维护”发生在什么时候、影响有多大。</p>
+<p>对操作系统更新，我们加了一条通知。RDS 在有新的系统更新可用时会发出事件 <code>RDS-EVENT-0230</code>，用 EventBridge 接住，转到已有的告警通道：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">resource &quot;aws_cloudwatch_event_rule&quot; &quot;rds_os_update_available&quot; &#123;</span><br><span class="line">  name        = &quot;$&#123;var.env_name&#125;-rds-os-update-available&quot;</span><br><span class="line">  description = &quot;RDS operating system update available (RDS-EVENT-0230)&quot;</span><br><span class="line"></span><br><span class="line">  event_pattern = jsonencode(&#123;</span><br><span class="line">    source        = [&quot;aws.rds&quot;]</span><br><span class="line">    &quot;detail-type&quot; = [&quot;RDS DB Instance Event&quot;]</span><br><span class="line">    detail = &#123;</span><br><span class="line">      EventID = [&quot;RDS-EVENT-0230&quot;]</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这条事件里不带截止日期。收到通知之后，要去待处理维护里看 <code>system-update</code> 这一项有没有 <code>AutoAppliedAfterDate</code>：有，就是到期会自动执行的强制更新，要在那之前自己排期；没有，就是可选更新，什么时候装由我们定。</p>
+<p>当时也考虑过加一个 Lambda，收到事件后自动去查截止日期，只把强制更新发出来。最后没有做：多一个函数就多一份成本和维护，非必要不加，判断这一步留给人。</p>
+<h3 id="领导的方案有两种实现"><a href="#领导的方案有两种实现" class="headerlink" title="领导的方案有两种实现"></a>领导的方案有两种实现</h3><p>“版本锁死、手工升级”落到 Terraform 上，有两种做法。两种都关掉自动升级，区别在于：小版本号写不写进代码，升级这个动作在哪里执行。</p>
+<p><strong>实现一：代码只写大版本，升级在 Terraform 之外做。</strong> 我们现在就是这种。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">engine_version             = &quot;8.4&quot;</span><br><span class="line">auto_minor_version_upgrade = false</span><br></pre></td></tr></table></figure>
+
+<p>升级时直接操作 RDS，用控制台或者命令行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager rds modify-db-instance \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --db-instance-identifier &lt;db-instance-id&gt; \</span><br><span class="line">  --engine-version 8.4.13 \</span><br><span class="line">  --no-apply-immediately</span><br></pre></td></tr></table></figure>
+
+<p><code>--no-apply-immediately</code> 是把升级排进这台实例的下一个维护窗口，换成 <code>--apply-immediately</code> 就是立刻开始。</p>
+<p>Terraform 这边什么都不用改。provider 的文档说前缀写法是给打开自动升级的场景用的，但在我们用的 6.60.0 的源码里，前缀比较并不看这个开关：只要代码里的 <code>engine_version</code> 是实际版本的前缀，就不算漂移。所以升完之后变的只是 <code>engine_version_actual</code>，plan 仍然是干净的。</p>
+<p><strong>实现二：代码写死完整版本号，升级就是改代码。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">engine_version             = &quot;8.4.9&quot;</span><br><span class="line">auto_minor_version_upgrade = false</span><br></pre></td></tr></table></figure>
+
+<p>升级时把这一行改成目标版本，plan，apply。这里有一个细节，我们 prod 的 <code>apply_immediately</code> 是 <code>true</code>，apply 的那一刻升级就开始了，不会等到维护窗口。所以”在维护窗口里做”，靠的是人在窗口里执行 apply。</p>
+<p>两种实现放在一起看：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>实现一：只写大版本，Terraform 之外升级</th>
+<th>实现二：写死版本，改代码升级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>现在跑的是哪个小版本，看哪里</td>
+<td>AWS，或者 state 里的 <code>engine_version_actual</code></td>
+<td>代码</td>
+</tr>
+<tr>
+<td>升级动作</td>
+<td>控制台或 <code>modify-db-instance</code></td>
+<td>改 <code>engine_version</code>，plan，apply</td>
+</tr>
+<tr>
+<td>升级留下的记录</td>
+<td>变更单和 CloudTrail</td>
+<td>变更单，加上 Git 提交和代码评审</td>
+</tr>
+<tr>
+<td>preprod 和 prod 的版本对齐</td>
+<td>靠人核对</td>
+<td>两边代码写同一个值</td>
+</tr>
+<tr>
+<td>新建或重建一台实例</td>
+<td>拿到当时的默认小版本，可能和其他实例不一致</td>
+<td>和代码一致</td>
+</tr>
+<tr>
+<td>AWS 强制升级之后</td>
+<td>plan 不漂移，Terraform 这边没有感知</td>
+<td>plan 漂移，要改代码追上去</td>
+</tr>
+<tr>
+<td>每次升级要不要改代码</td>
+<td>不用</td>
+<td>要</td>
+</tr>
+</tbody></table>
+<p>实现一的好处是轻：代码长期不动，升级想立刻做还是排进维护窗口，一个参数就能选。代价是版本不在代码里，”prod 现在是哪个小版本、是不是和 preprod 一致”要去 AWS 上查；而且哪天重建一台实例，它拿到的是当时的默认小版本，现在是 <code>8.4.11</code>，和其他还在 <code>8.4.9</code> 的实例就不一致了。</p>
+<p>实现二的好处是代码就是版本的唯一出处，升级和其他基础设施变更走同一套评审流程。代价是每次升级都要改代码；另外，如果 AWS 因为安全问题或版本到期强制升了版本，plan 会出现一条想把版本改回去的变更，而 RDS 不能降级，只能改代码去追。这一点也可以反过来看：有定时 drift 检查的话，这条漂移正好是一个”版本被动过了”的信号。</p>
+<p>操作系统更新在两种实现下没有区别，它不归 Terraform 管，都是用命令行触发。可以立即执行，也可以排进下一个维护窗口：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">aws --no-cli-pager rds apply-pending-maintenance-action \</span><br><span class="line">  --profile prod --region ap-southeast-1 \</span><br><span class="line">  --resource-identifier &lt;db-instance-arn&gt; \</span><br><span class="line">  --apply-action system-update \</span><br><span class="line">  --opt-in-type next-maintenance</span><br></pre></td></tr></table></figure>
+
+<p>顺带一提，前面那段 Checkov 注释里写的”通过 Terraform 改 <code>engine_version</code> 来升级”，说的其实是实现二，和我们现在的实现一对不上。到写这篇为止，prod 还没有做过一次小版本升级，两种实现之间还可以再选。选定之后，注释要跟着对齐。</p>
+<h3 id="怎么选"><a href="#怎么选" class="headerlink" title="怎么选"></a>怎么选</h3><p>如果没有额外的约束，自动升级是默认该选的方案，这也是 AWS 官方的建议。</p>
+<p>领导的方案是为了”版本先验证、重启可追溯”而做的有意偏离。偏离是有成本的：Checkov 的检查要跳过，”补丁及时”这条风控要求改由人来兑现，而 AWS 的强制更新仍然锁不住。它成立的前提，是把这些落到具体的人和日程上：谁接收系统更新的通知，多久看一次版本差距，升级按什么顺序、在哪个窗口做。没有这些，锁死方案比自动升级更差，因为自动升级至少还有 AWS 兜底。</p>
+<p>至于两种实现，取决于团队把什么当作版本的出处：以 AWS 上的实际状态为准，就用实现一；要求生产的一切变更都从代码评审里走，就用实现二。</p>
+<h2 id="多说几句"><a href="#多说几句" class="headerlink" title="多说几句"></a>多说几句</h2><p><strong>第一，<code>engine_version</code> 只写大版本，解决的是 Terraform 和 AWS 抢着管版本的问题。</strong> 代码声明大版本，实际小版本记在 <code>engine_version_actual</code> 里，谁升的都不会让 plan 漂移。但它不保证新建实例拿到最新的小版本，拿到的是默认小版本。</p>
+<p><strong>第二，自动小版本升级是”AWS 认为该升的时候替你升”，不是”紧跟最新”。</strong> 只有被 RDS 指定为自动升级目标的版本才会升。想知道现在会不会升、升到哪，查 <code>ValidUpgradeTarget</code> 里的 <code>AutoUpgrade</code>。</p>
+<p><strong>第三，Multi-AZ 管得了操作系统补丁和主机故障，管不了 MySQL 的引擎升级。</strong> 前者是一次不到一分钟的切换，后者是主备同时升级、几分钟不可用。不要因为开了 Multi-AZ 就认为升级没有停机。</p>
+<p><strong>第四，维护窗口要和备份一起排。</strong> RDS 自动备份窗口不能和它重叠，AWS Backup 的任务不能落在它里面或紧挨着它。把这三段时间画在一条线上再定，并且把约束写进代码注释。</p>
+<p><strong>第五，自动升级和锁死手工升级，只差”引擎小版本由谁触发”这一个开关。</strong> 没有严格的变更管理要求、也没有专人盯数据库，就开着，这是 AWS 推荐的默认做法，也最省心。要求生产版本必须先验证、每次重启必须可追溯，就锁死，但要同时接受两件事：操作系统强制更新和到期强制升级仍然锁不住，需要有通知；小版本升级从此要有人负责排期。只关开关、跳过检查而没有后面这两样，等于把一个自动的流程换成了一个没人管的流程。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Upgrading.html">Amazon RDS: Upgrading a DB instance engine version</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.MySQL.Minor.html">Amazon RDS: Automatic minor version upgrades for RDS for MySQL</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.MySQL.html">Amazon RDS: Upgrades of the RDS for MySQL DB engine</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html">Amazon RDS: Maintaining a DB instance</a></li>
+<li><a target="_blank" rel="noopener" href="https://aws.amazon.com/rds/faqs/">Amazon RDS FAQs</a></li>
+<li><a target="_blank" rel="noopener" href="https://aws.amazon.com/blogs/database/security-best-practices-for-amazon-rds-for-mysql-and-mariadb-instances/">AWS Database Blog: Security best practices for Amazon RDS for MySQL and MariaDB instances</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/config/latest/developerguide/rds-automatic-minor-version-upgrade-enabled.html">AWS Config: rds-automatic-minor-version-upgrade-enabled</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.aws.amazon.com/aws-backup/latest/devguide/point-in-time-recovery.html">AWS Backup: Continuous backups and point-in-time recovery (PITR)</a></li>
+<li><a target="_blank" rel="noopener" href="https://repost.aws/knowledge-center/backup-coordinates-pitr">AWS re:Post: Why does my AWS Backup PITR job fail when it overlaps with Amazon RDS maintenance windows?</a></li>
+<li><a target="_blank" rel="noopener" href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance">Terraform: aws_db_instance</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="reward-container">
+  <div>请我一杯咖啡吧！</div>
+  <button>
+    赞赏
+  </button>
+  <div class="post-reward">
+      <div>
+        <img src="/images/wechat-reward.png" alt="老杨 微信">
+        <span>微信</span>
+      </div>
+      <div>
+        <img src="/images/alipay-reward.png" alt="老杨 支付宝">
+        <span>支付宝</span>
+      </div>
+
+  </div>
+</div>
+
+          <div class="followme">
+  <span>欢迎关注我的其它发布渠道</span>
+
+  <div class="social-list">
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="https://twitter.com/6fool">
+            <span class="icon">
+              <i class="fab fa-twitter"></i>
+            </span>
+
+            <span class="label">Twitter</span>
+          </a>
+      </div>
+
+      <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+      </div>
+  </div>
+</div>
+
+          <div class="post-tags">
+              <a href="/tags/AWS/" rel="tag"># AWS</a>
+              <a href="/tags/MySQL/" rel="tag"># MySQL</a>
+              <a href="/tags/Terraform/" rel="tag"># Terraform</a>
+              <a href="/tags/RDS/" rel="tag"># RDS</a>
+              <a href="/tags/Multi-AZ/" rel="tag"># Multi-AZ</a>
+              <a href="/tags/%E7%BB%B4%E6%8A%A4%E7%AA%97%E5%8F%A3/" rel="tag"># 维护窗口</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/09/git-personal-long-lived-branch-gfo-grbom-gpf/index.html" rel="prev" title="gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常">
+                  <i class="fa fa-angle-left"></i> gfo、grbom、gpf：一条个人长期分支撑起的 Git 日常
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">老杨</span>
+  </div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
